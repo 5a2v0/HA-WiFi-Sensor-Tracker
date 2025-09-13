@@ -1,0 +1,9 @@
+{
+  "domain": "sensor_wifi_tracker",
+  "name": "Sensor WiFi Tracker",
+  "version": "0.1.0",
+  "documentation": "https://github.com/5a2v0/HA-Sensor-WiFi-Tracker",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": ["@5a2v0"]
+}
