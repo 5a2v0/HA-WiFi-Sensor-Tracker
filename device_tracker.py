@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.components.device_tracker.const import SourceType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ async def async_setup_scanner(hass: HomeAssistant, config, async_see, discovery_
                 dev_id=dev_id,
                 host_name=sensor,
                 location_name=location,
+                source_type=SourceType.ROUTER
             )
 
     # 🔹 primo update ritardato di 30s (per dare tempo ai sensori di caricarsi)
