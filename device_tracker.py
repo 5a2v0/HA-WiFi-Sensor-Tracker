@@ -13,7 +13,7 @@ async def async_setup_scanner(hass: HomeAssistant, config, async_see, discovery_
     sensors = config.get("sensors", [])
 
     if not sensors:
-        _LOGGER.error("Nessun sensore specificato per sensor_wifi_tracker")
+        _LOGGER.error("Nessun sensore specificato per WiFi Sensor Tracker")
         return False
 
     async def update(now=None):
