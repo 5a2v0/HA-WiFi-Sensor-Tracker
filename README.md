@@ -17,8 +17,8 @@ device_tracker:
   - platform: wifi_sensor_tracker
     home_wifi_ssid: "My_Home_SSID"
     sensors:
-      - sensor.smartphone_tizio_wifi_connection
-      - sensor.smartphone_caio_wifi_connection
+      - sensor.smartphone_USER1_wifi_connection
+      - sensor.smartphone_USER2_wifi_connection
     consider_home: 180
 ```
 
