@@ -1,1 +1,1 @@
-"""Init per Sensor WiFi Tracker."""
+"""Init per HA WiFi Sensor Tracker."""
