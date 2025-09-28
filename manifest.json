@@ -1,9 +1,10 @@
 {
   "domain": "wifi_sensor_tracker",
-  "name": "WiFi Sensor Tracker",
-  "version": "0.1.1",
+  "name": "Wi-Fi Sensor Tracker",
+  "version": "2.0.0",
   "documentation": "https://github.com/5a2v0/HA-WiFi-Sensor-Tracker",
   "requirements": [],
-  "dependencies": [],
-  "codeowners": ["@5a2v0"]
+  "codeowners": ["@5a2v0"],
+  "config_flow": true,
+  "iot_class": "local_push"
 }
