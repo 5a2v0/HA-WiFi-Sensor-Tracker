@@ -1,34 +1,84 @@
-# Wi-Fi Sensor Tracker
+🛰️ Wi-Fi Sensor Tracker
 
-This custom integration allows you to use Wi-Fi sensors as `device_tracker` entities in Home Assistant.  
-Each Wi-Fi sensor can be treated as a tracker, useful to determine if a person is `home` or `not_home`.
+Custom integration for Home Assistant that turns your phone’s Wi-Fi connection sensor into a device tracker.
+Useful when GPS is unreliable indoors (e.g. inside your home), allowing presence detection based on Wi-Fi connection.
+
 
 ---
 
-## Configuration
+✨ Features
 
-In the current version you need to add the configuration in your `configuration.yaml`.  
-Specify your **home Wi-Fi SSID** and the list of **Wi-Fi sensors** you want to track.
+Each Wi-Fi sensor becomes a device_tracker entity.
+Supports multiple sensors (e.g. multiple phones).
+Supports consider_home: delay before marking a device as not_home after Wi-Fi disconnects.
+Exposes trackers as device_tracker entities with source_type=router → integrates seamlessly with Home Assistant person entities.
 
-### Example
+Fully configurable via UI (Config Flow) – no YAML required.
 
-```yaml
-device_tracker:
-  - platform: wifi_sensor_tracker
-    home_wifi_ssid: "My_Home_SSID"
-    sensors:
-      - sensor.smartphone_USER1_wifi_connection
-      - sensor.smartphone_USER2_wifi_connection
-    consider_home: 180
-```
 
-home_wifi_ssid: The SSID of your home network.
-sensors: List of Wi-Fi sensors (entities) to be used as trackers.
-consider_home: (optional) Number of seconds to wait before marking the device as not_home.
 
-Roadmap
+---
 
-In a future release, configuration will be possible through the Home Assistant UI with a Config Flow, including:
-Selection of Wi-Fi sensors directly from a list of available entities.
-Support for multiple Wi-Fi networks.
-Mapping each Wi-Fi network to a specific zone (e.g., home, work, second_home).
+⚙️ Installation
+
+1. Copy the folder wifi_sensor_tracker into your Home Assistant custom_components directory.
+Final path:
+
+config/custom_components/wifi_sensor_tracker/
+
+2. Restart Home Assistant.
+3. Go to Settings → Devices & Services → Add Integration.
+4. Search for Wi-Fi Sensor Tracker and configure it.
+
+
+
+---
+
+🔧 Configuration
+
+When you add the integration from the UI, you will be asked:
+Home Wi-Fi SSID → the SSID that should be considered "home".
+
+Sensors → select one or more Wi-Fi connection sensors (usually created by the HA Companion App, e.g. sensor.myphone_wifi_connection).
+
+Consider Home (seconds) → how long to wait before marking a device as not_home after Wi-Fi disconnects (default: 180).
+
+
+
+---
+
+📊 Example
+
+If you configure with:
+SSID: My_Home_SSID
+
+Sensors:
+sensor.smartphone_tizio_wifi_connection
+sensor.smartphone_caio_wifi_connection
+
+
+You will get these entities:
+device_tracker.smartphone_tizio_wifi
+device_tracker.smartphone_caio_wifi
+
+Their state will be home when the phone is connected to My_Home_SSID, and not_home otherwise (after consider_home delay).
+
+
+---
+
+❗ Notes
+
+Old YAML configuration is no longer required.
+Removing the integration from UI will also remove the created trackers.
+This integration does not require router credentials, it only relies on the phone’s own Wi-Fi sensor.
+
+
+
+---
+
+
+🚀 Future Plans
+
+Planned improvements for next versions:
+Multi-SSID / Multi-Zone support → assign different Wi-Fi networks to custom zones (e.g. Home, Work, Second House).
+Automatic sensor filtering → only suggest Wi-Fi-related sensors during setup.
