@@ -1,11 +1,25 @@
 """Wi-Fi Sensor Tracker integration."""
 import logging
+import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import entity_registry as er
 
 DOMAIN = "wifi_sensor_tracker"
 PLATFORMS = ["device_tracker"]
+
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Optional("home_wifi_ssid"): cv.string,
+                vol.Optional("sensors"): [cv.entity_id],
+                vol.Optional("consider_home", default=180): cv.positive_int,
+            }
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
