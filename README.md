@@ -1,4 +1,5 @@
 🛰️ Wi-Fi Sensor Tracker
+[![HACS Validation](https://github.com/5a2v0/HA-WiFi-Sensor-Tracker/actions/workflows/hacs-validation.yml/badge.svg)](https://github.com/5a2v0/HA-WiFi-Sensor-Tracker/actions/workflows/hacs-validation.yml)
 
 Custom integration for Home Assistant that turns your phone’s Wi-Fi connection sensor into a device tracker.
 Useful when GPS is unreliable indoors (e.g. inside your home), allowing presence detection based on Wi-Fi connection.
