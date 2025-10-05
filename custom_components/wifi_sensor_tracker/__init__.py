@@ -4,6 +4,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import entity_registry as er
+import homeassistant.helpers.config_validation as cv
 
 DOMAIN = "wifi_sensor_tracker"
 PLATFORMS = ["device_tracker"]
