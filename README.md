@@ -15,7 +15,7 @@
 | **Author** | [5a2v0](https://github.com/5a2v0) |
 | **Tested HA Version** | 2025.9 or newer |
 | **Config method** | Config Flow (UI only, no YAML) |
-| **Current Version** | 2.0.3 |
+| **Current Version** | 2.0.4 |
 
 ---
 ## <img src="https://twemoji.maxcdn.com/v/latest/svg/1f1ec-1f1e7.svg" width="20"/> English 🇬🇧
