@@ -1,10 +1,11 @@
 """Wi-Fi Sensor Tracker integration."""
 import logging
 import voluptuous as vol
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import entity_registry as er
 import homeassistant.helpers.config_validation as cv
+import asyncio
 
 DOMAIN = "wifi_sensor_tracker"
 PLATFORMS = ["device_tracker"]
@@ -35,7 +36,44 @@ async def async_setup(hass: HomeAssistant, config: dict):
                 data=config[DOMAIN],
             )
         )
+
+    # Aggiunta del listener per invio automatico request_location_update
+    @callback
+    def _on_ha_started(event):
+        hass.loop.create_task(_send_location_update(hass))
+
+    hass.bus.async_listen_once("homeassistant_started", _on_ha_started)
+
     return True
+
+
+async def _send_location_update(hass: HomeAssistant):
+    """Invia request_location_update a tutti i mobile_app registrati dopo 30s dall'avvio."""
+    await asyncio.sleep(30)
+    _LOGGER.info("Invio request_location_update a tutti i Companion App registrati...")
+
+    notify_services = [
+        srv for srv in hass.services.async_services().get("notify", {}).keys()
+        if srv.startswith("mobile_app_")
+    ]
+
+    if not notify_services:
+        _LOGGER.warning("Nessun servizio notify.mobile_app_* trovato.")
+        return
+
+    for srv in notify_services:
+        _LOGGER.debug("Invio request_location_update a %s", srv)
+        try:
+            await hass.services.async_call(
+                "notify",
+                srv,
+                {"message": "request_location_update"},
+                blocking=False,
+            )
+        except Exception as e:
+            _LOGGER.error("Errore nell'inviare update a %s: %s", srv, e)
+
+    _LOGGER.info("Richieste di update inviate a %d dispositivi", len(notify_services))
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
