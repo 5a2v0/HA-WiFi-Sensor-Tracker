@@ -81,12 +81,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
+async def async_soft_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
+    """Soft reload: non elimina entità dal registry, solo ricarica la piattaforma."""
+    await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry and remove its entities."""
     # 1. Unload le piattaforme
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-
     # 2. Pulizia delle entità create da questo ConfigEntry
     entity_registry = er.async_get(hass)
     entity_entries = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
