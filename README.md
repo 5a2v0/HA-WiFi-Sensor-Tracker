@@ -167,7 +167,7 @@ Esempio dati obbligatori in fase di configurazione:
 SSID: My_Home_SSID
 
 Sensors:
-- sensor.smartphone_tizio_wifi_connection (nome sensore tipoco su dispositivi Android)
+- sensor.smartphone_tizio_wifi_connection (nome sensore tipico su dispositivi Android)
 - sensor.smartphone_caio_ssid (nome sensore tipico su dispositivi Apple)
 
 Risultato, due entità create:
