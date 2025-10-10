@@ -74,17 +74,17 @@ During setup in the UI, you’ll be asked to provide:
 
 ## 📊 Example
 
-Configuration:
+Minimal configuration:
 
 SSID: My_Home_SSID
+
 Sensors:
-sensor.smartphone_tizio_wifi_connection
-sensor.smartphone_caio_wifi_connection
+- sensor.smartphone_tizio_wifi_connection (Android default sensor name)
+- sensor.smartphone_caio_ssid (Apple default sensor name)
 
 Result — two entities created:
-
-device_tracker.smartphone_tizio_wifi
-device_tracker.smartphone_caio_wifi
+- device_tracker.smartphone_tizio_wifi
+- device_tracker.smartphone_caio_ssid
 
 State = **home** when connected to “My_Home_SSID”
 State = **not_home** after disconnection, following the delay defined in `consider_home`
@@ -104,7 +104,6 @@ State = **not_home** after disconnection, following the delay defined in `consid
 ## 🚀 Roadmap / Future development
 
 * 🔹 **Multi-SSID / Multi-Zone support:** map different SSIDs to custom zones (Home, Work, …)
-* 🔹 **Automatic sensor filtering:** during setup, only valid Wi-Fi sensors will be suggested
 
 ---
 
@@ -163,17 +162,17 @@ Durante la configurazione da UI ti verrà chiesto di specificare:
 
 ## 📊 Esempio
 
-Configurazione:
+Esempio dati obbligatori in fase di configurazione:
 
 SSID: My_Home_SSID
+
 Sensors:
-sensor.smartphone_tizio_wifi_connection
-sensor.smartphone_caio_wifi_connection
+- sensor.smartphone_tizio_wifi_connection (nome sensore tipoco su dispositivi Android)
+- sensor.smartphone_caio_ssid (nome sensore tipico su dispositivi Apple)
 
 Risultato, due entità create:
-
-device_tracker.smartphone_tizio_wifi
-device_tracker.smartphone_caio_wifi
+- device_tracker.smartphone_tizio_wifi
+- device_tracker.smartphone_caio_ssid
 
 Stato = **home** quando connesso a “My_Home_SSID”  
 Stato = **not_home** dopo disconnessione, dopo l'eventuale tempo in secondi dichiarato in  'consider_home'
@@ -193,6 +192,5 @@ Stato = **not_home** dopo disconnessione, dopo l'eventuale tempo in secondi dich
 ## 🚀 Roadmap / Sviluppi futuri
 
 - 🔹 **Multi-SSID / Multi-Zone support:** mappa diversi SSID a zone personalizzate (Home, Work, …)  
-- 🔹 **Automatic sensor filtering:** durante il setup verranno suggeriti solo sensori Wi-Fi validi
 
 ---
