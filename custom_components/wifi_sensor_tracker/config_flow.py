@@ -12,6 +12,16 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    async def _get_wifi_sensors(self):
+        """Return list of sensor entities matching Wi-Fi connection patterns."""
+        entity_reg = er.async_get(self.hass)
+        all_entities = [e.entity_id for e in entity_reg.entities.values() if e.entity_id.startswith("sensor.")]
+        wifi_sensors = [
+            eid for eid in all_entities
+            if "_wifi_connection" in eid or "_ssid" in eid
+        ]
+        return sorted(wifi_sensors)
+
     async def async_step_import(self, import_config: dict):
         """Import from configuration.yaml."""
         return await self.async_step_user(user_input=import_config)
@@ -20,14 +30,19 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """UI step for initial setup."""
         errors = {}
 
+        wifi_sensors = await self._get_wifi_sensors()
+
+        if not wifi_sensors:
+            errors["sensors"] = "Nessun sensore Wi-Fi rilevato"
+
         schema = vol.Schema(
             {
                 vol.Required("home_wifi_ssid"): str,
                 vol.Required("sensors"): selector(
                     {
                         "entity": {
-                            "domain": "sensor",
                             "multiple": True,
+                            "include_entities": wifi_sensors,
                         }
                     }
                 ),
@@ -59,9 +74,21 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
         """Initialize the options flow with the existing entry."""
         self._entry = entry
 
+    async def _get_wifi_sensors(self):
+        """Return list of sensor entities matching Wi-Fi connection patterns."""
+        entity_reg = er.async_get(self.hass)
+        all_entities = [e.entity_id for e in entity_reg.entities.values() if e.entity_id.startswith("sensor.")]
+        wifi_sensors = [
+            eid for eid in all_entities
+            if "_wifi_connection" in eid or "_ssid" in eid
+        ]
+        return sorted(wifi_sensors)
+
     async def async_step_init(self, user_input=None):
         """Manage options."""
         errors = {}
+
+        wifi_sensors = await self._get_wifi_sensors()
 
         schema = vol.Schema(
             {
@@ -75,8 +102,8 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 ): selector(
                     {
                         "entity": {
-                            "domain": "sensor",
                             "multiple": True,
+                            "include_entities": wifi_sensors,
                         }
                     }
                 ),
@@ -105,8 +132,10 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
             sensors_to_remove = old_sensors - new_sensors
             ssid_changed = new_ssid != old_ssid
             consider_home_changed = new_consider_home != old_consider_home
+
             # 2. Aggiorna il config entry
             self.hass.config_entries.async_update_entry(self._entry, data=user_input)
+
             # 3. Rimuove solo le entità dei sensori tolti
             if sensors_to_remove:
                 entity_registry = er.async_get(self.hass)
@@ -115,6 +144,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                     entry = entity_registry.async_get(entity_id)
                     if entry:
                         entity_registry.async_remove(entry.entity_id)
+
             # 4. Se sono stati aggiunti nuovi sensori o cambiato l'SSID/consider_home, ricarica le piattaforme
             if sensors_to_add or sensors_to_remove or ssid_changed or consider_home_changed:
                 await async_soft_reload_entry(self.hass, self._entry)
