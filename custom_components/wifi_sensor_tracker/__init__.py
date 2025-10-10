@@ -40,7 +40,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
     # Aggiunta del listener per invio automatico request_location_update
     @callback
     def _on_ha_started(event):
-        hass.loop.create_task(_send_location_update(hass))
+        hass.async_create_task(_send_location_update(hass))
 
     hass.bus.async_listen_once("homeassistant_started", _on_ha_started)
 
