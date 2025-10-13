@@ -36,74 +36,91 @@ async def async_setup(hass: HomeAssistant, config: dict):
                 data=config[DOMAIN],
             )
         )
-
-    # Aggiunta del listener per invio automatico request_location_update
-    @callback
-    def _on_ha_started(event):
-        hass.async_create_task(_send_location_update(hass))
-
-    hass.bus.async_listen_once("homeassistant_started", _on_ha_started)
-
     return True
 
 
-async def _send_location_update(hass: HomeAssistant):
-    """Invia request_location_update a tutti i mobile_app registrati dopo 30s dall'avvio."""
-    await asyncio.sleep(30)
-    _LOGGER.info("Invio request_location_update a tutti i Companion App registrati...")
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+    """Set up from a config entry."""
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    
+    @callback
+    def _on_ha_started(event):
+        hass.async_create_task(_send_location_update_and_check_sensors(hass, entry))
+    hass.bus.async_listen_once("homeassistant_started", _on_ha_started)
+    return True
+    
 
+async def _send_location_update_and_check_sensors(hass: HomeAssistant, entry: ConfigEntry):
+    """Dopo 30s invia request_location_update e controlla i sensori configurati."""
+    await asyncio.sleep(30)
+    _LOGGER.debug("Avvio controllo sensori ed invio request_location_update...")
+
+    # === INVIO request_location_update ===
     notify_services = [
         srv for srv in hass.services.async_services().get("notify", {}).keys()
         if srv.startswith("mobile_app_")
     ]
 
     if not notify_services:
-        _LOGGER.warning("Nessun servizio notify.mobile_app_* trovato.")
-        return
+        _LOGGER.warning("Nessun dispositivo utilizza l'app companion e condivide quindi sensori compatibili con l'integrazione.")
+    else:
+        for srv in notify_services:
+            _LOGGER.debug("Invio request_location_update a %s", srv)
+            try:
+                await hass.services.async_call(
+                    "notify",
+                    srv,
+                    {"message": "request_location_update"},
+                    blocking=False,
+                )
+            except Exception as e:
+                _LOGGER.error("Errore nell'inviare update a %s: %s", srv, e)
+        _LOGGER.debug("Richieste di update inviate a %d dispositivi", len(notify_services))
 
-    for srv in notify_services:
-        _LOGGER.debug("Invio request_location_update a %s", srv)
-        try:
-            await hass.services.async_call(
-                "notify",
-                srv,
-                {"message": "request_location_update"},
-                blocking=False,
-            )
-        except Exception as e:
-            _LOGGER.error("Errore nell'inviare update a %s: %s", srv, e)
+    # === CONTROLLO SENSORI ===
+    configured_sensors = set(entry.data.get("sensors", []))
 
-    _LOGGER.info("Richieste di update inviate a %d dispositivi", len(notify_services))
+    all_sensors = [e for e in hass.states.async_entity_ids("sensor")]
+    available_sensors = {
+        s for s in all_sensors if s.endswith("_wifi_connection") or s.endswith("_ssid")
+    }
 
+    missing = configured_sensors - available_sensors
+    if missing:
+        _LOGGER.warning(
+            "Alcuni sensori configurati non sono più disponibili: %s. Puoi aggiornare la configurazione dell'integrazione per eliminarli e di conseguenza eliminare i tracker collegati.",
+            ", ".join(sorted(missing)),
+        )
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up from a config entry."""
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    return True
+    new_ones = available_sensors - configured_sensors
+    if new_ones:
+        _LOGGER.info(
+            "Rilevati nuovi sensori Wi-Fi compatibili non ancora configurati: %s. Puoi aggiornare la configurazione dell'integrazione per includerli.",
+            ", ".join(sorted(new_ones)),
+        )
+
 
 async def async_soft_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Soft reload: non elimina entità dal registry, solo ricarica la piattaforma."""
     await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry and remove its entities."""
-    # 1. Unload le piattaforme
+    """Unload config entry e rimuove le entità associate."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    # 2. Pulizia delle entità create da questo ConfigEntry
     entity_registry = er.async_get(hass)
     entity_entries = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
 
     if entity_entries:
         for entity_entry in entity_entries:
             _LOGGER.debug(
-                "Removing entity '%s' created by config entry '%s'",
+                "Rimozione entità '%s' creata dal config entry '%s'",
                 entity_entry.entity_id,
                 entry.entry_id,
             )
             entity_registry.async_remove(entity_entry.entity_id)
     else:
-        _LOGGER.debug(
-            "No entities found to remove for config entry '%s'", entry.entry_id
-        )
+        _LOGGER.debug("Nessuna entità trovata da rimuovere per l'integrazione")
+
     return unload_ok
