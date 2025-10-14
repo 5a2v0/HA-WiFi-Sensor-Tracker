@@ -8,7 +8,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_state_change_event, async_call_later
 from homeassistant.util import dt as dt_util
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__package__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -109,5 +109,3 @@ class WifiSensorTrackerEntity(TrackerEntity):
         if self._exit_timer:
             self._exit_timer()
             self._exit_timer = None
-
-
