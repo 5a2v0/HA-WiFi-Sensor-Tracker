@@ -18,7 +18,7 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         all_entities = [e.entity_id for e in entity_reg.entities.values() if e.entity_id.startswith("sensor.")]
         wifi_sensors = [
             eid for eid in all_entities
-            if "_wifi_connection" in eid or "_ssid" in eid
+            if "_wifi_connection" in eid or "_ssid" in eid or "_wi_fi_connection" in eid
         ]
         return sorted(wifi_sensors)
 
@@ -80,7 +80,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
         all_entities = [e.entity_id for e in entity_reg.entities.values() if e.entity_id.startswith("sensor.")]
         wifi_sensors = [
             eid for eid in all_entities
-            if "_wifi_connection" in eid or "_ssid" in eid
+            if "_wifi_connection" in eid or "_ssid" in eid or "_wi_fi_connection" in eid
         ]
         return sorted(wifi_sensors)
 
