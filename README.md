@@ -15,7 +15,7 @@
 | **Author** | [5a2v0](https://github.com/5a2v0) |
 | **Tested HA Version** | 2025.9 or newer |
 | **Config method** | Config Flow (UI only, no YAML) |
-| **Current Version** | 2.0.7 |
+| **Current Version** | 2.1.0 |
 
 ---
 ## <img src="https://twemoji.maxcdn.com/v/latest/svg/1f1ec-1f1e7.svg" width="20"/> English 🇬🇧
@@ -69,7 +69,7 @@ During setup in the UI, you’ll be asked to provide:
 | **Home Wi-Fi SSID**         | SSID to be considered as “home”                                                    |
 | **Sensors**                 | One or more Wi-Fi sensors (e.g. `sensor.my_phone_wifi_connection`)                 |
 | **Consider Home (seconds)** | Tolerance time before switching to *not_home* after disconnection (default: 180 s) |
-
+| ** Extra SSID / Zone**      | SSID to be considered as your registred Home Assistant zones                       |
 ---
 
 ## 📊 Example
@@ -103,7 +103,7 @@ State = **not_home** after disconnection, following the delay defined in `consid
 
 ## 🚀 Roadmap / Future development
 
-* 🔹 **Multi-SSID / Multi-Zone support:** map different SSIDs to custom zones (Home, Work, …)
+* 🔹 **Multi-SSID / Multi-Zone support:** for now this function works by an applied patch to Person entity from Home Assistant core by our integration. I'm trying to pushing this update to Home Assistant core with a Pull Request on GitHub.
 
 ---
 
@@ -152,12 +152,12 @@ poi riavvia Home Assistant.
 
 Durante la configurazione da UI ti verrà chiesto di specificare:
 
-| Field | Description |
-|-------|--------------|
-| **Home Wi-Fi SSID** | SSID da considerare come “home” |
-| **Sensors** | Uno o più sensori Wi-Fi (es. `sensor.mio_telefono_wifi_connection`) |
+| Nome campo                  | Descrizione                                                                                |
+|--------------|-----------------------------------------------------------------------------------------------------------|
+| **Home Wi-Fi SSID**         | SSID da considerare come “home”                                                            |
+| **Sensors**                 | Uno o più sensori Wi-Fi (es. `sensor.mio_telefono_wifi_connection`)                        |
 | **Consider Home (seconds)** | Secondi di tolleranza prima di passare a *not_home* dopo la disconnessione (default 180 s) |
-
+| ** Extra SSID / Zone**      | SSID da utilizzare per il riconoscimento di altre zone registrate in Home Assistant        |
 ---
 
 ## 📊 Esempio
@@ -191,6 +191,6 @@ Stato = **not_home** dopo disconnessione, dopo l'eventuale tempo in secondi dich
 
 ## 🚀 Roadmap / Sviluppi futuri
 
-- 🔹 **Multi-SSID / Multi-Zone support:** mappa diversi SSID a zone personalizzate (Home, Work, …)  
+- 🔹 **Multi-SSID / Multi-Zone support:** attualmente questa funzione è offerta grazie ad una patch ad un file del core di Home Assistant che viene applicato dall'integrazione all'avvio. Sto spingendo tramite GitHub per il riconoscimento della funzione in maniera nativa dal core di Home Assistant.  
 
 ---
