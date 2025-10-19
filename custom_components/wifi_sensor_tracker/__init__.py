@@ -7,8 +7,12 @@ from homeassistant.helpers import entity_registry as er
 import homeassistant.helpers.config_validation as cv
 import asyncio
 
+#WORKAROUND IN ATTESA DELLA MODIFICA DEL CORE
+from .patch_person import apply_person_patch
+
 DOMAIN = "wifi_sensor_tracker"
 PLATFORMS = ["device_tracker"]
+
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -23,7 +27,9 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
+
 _LOGGER = logging.getLogger(__package__)
+
 
 async def async_setup(hass: HomeAssistant, config: dict):
     """YAML setup (legacy)."""
@@ -35,29 +41,29 @@ async def async_setup(hass: HomeAssistant, config: dict):
                 data=config[DOMAIN],
             )
         )
+    #WORKAROUND IN ATTESA DELLA MODIFICA DEL CORE
+    apply_person_patch()  # Applica la patch al core PersonEntity
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up from a config entry."""
+    """Configuro l'integrazione con i dati del config entry."""
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    @callback
-    def _on_ha_started(event):
-        hass.async_create_task(_send_location_update_and_check_sensors(hass, entry))
-    # Se Home Assistant è già avviato (es. reload manuale)
+    # Gestisco controlli all'avvio dell'integrazione sia in caso di reload manuale dell'integrazione sia all'avvio di Home Assistant
     if hass.is_running:
-        hass.async_create_task(_send_location_update_and_check_sensors(hass, entry))
+        hass.async_create_task(_initial_checks_and_update_request(hass, entry))
     else:
-        hass.bus.async_listen_once("homeassistant_started", _on_ha_started)
-    
+        @callback
+        def _on_ha_started(event):
+            hass.async_create_task(_initial_checks_and_update_request(hass, entry))
+    hass.bus.async_listen_once("homeassistant_started", _on_ha_started)
     return True
-    
 
-async def _send_location_update_and_check_sensors(hass: HomeAssistant, entry: ConfigEntry):
-    """Dopo 30s invia request_location_update e controlla i sensori configurati."""
+
+async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigEntry):
+    """Dopo 30s invia request_location_update e controlla i sensori e le zone configurate"""
     await asyncio.sleep(30)
-    _LOGGER.debug("Avvio controllo sensori ed invio request_location_update...")
+    _LOGGER.debug("Avvio controllo sensori/zone ed invio request_location_update...")
     
     # === INVIO request_location_update ===
     notify_services = [
@@ -107,6 +113,27 @@ async def _send_location_update_and_check_sensors(hass: HomeAssistant, entry: Co
             "Rilevati nuovi sensori Wi-Fi compatibili non ancora configurati: %s. Puoi aggiornare la configurazione dell'integrazione per includerli.",
             ", ".join(sorted(new_sensors)),
         )
+
+    # === CONTROLLO ZONE CONFIGURATE ===
+    configured_zones = set()
+    extra_zones = entry.data.get("extra_zones", [])
+    if extra_zones:
+        configured_zones = {z["zone"] for z in extra_zones if "zone" in z}
+
+        # Ottieni le zone realmente presenti in HA
+        ha_zones = {
+            state.attributes.get("friendly_name", state.entity_id.split(".", 1)[-1])
+            for state in hass.states.async_all("zone")
+        }
+
+        # Fai il diff tra le due liste ed in caso fai partire il messaggio di log
+        missing_zones = configured_zones - ha_zones
+        if missing_zones:
+            _LOGGER.warning(
+                "Alcune zone configurate nell'integrazione non esistono in Home Assistant: %s. "
+                "Crea queste zone sulla mappa altrimenti il tracker della persona non potrà mostrare il nome della zona",
+                ", ".join(sorted(missing_zones)),
+            )
 
 
 async def async_soft_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
