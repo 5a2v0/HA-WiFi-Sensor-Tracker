@@ -56,7 +56,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         @callback
         def _on_ha_started(event):
             hass.async_create_task(_initial_checks_and_update_request(hass, entry))
-    hass.bus.async_listen_once("homeassistant_started", _on_ha_started)
+        hass.bus.async_listen_once("homeassistant_started", _on_ha_started)
     return True
 
 
