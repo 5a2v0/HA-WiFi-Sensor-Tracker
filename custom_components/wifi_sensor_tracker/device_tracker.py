@@ -1,4 +1,4 @@
-"""Device tracker per Wi-Fi Sensor Tracker."""
+"""Device tracker per Wi-Fi Sensor Tracker (multi-zona, con consider_home)."""
 import logging
 from datetime import timedelta
 from homeassistant.components.device_tracker import SourceType
@@ -8,6 +8,8 @@ from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_state_change_event, async_call_later
 from homeassistant.util import dt as dt_util
 
+from homeassistant.const import ATTR_FRIENDLY_NAME
+
 _LOGGER = logging.getLogger(__package__)
 
 
@@ -16,9 +18,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ssid_home = entry.data["home_wifi_ssid"]
     sensors = entry.data["sensors"]
     consider_home = entry.data.get("consider_home", 180)
+    extra_zones = entry.data.get("extra_zones", [])
+    
+    # Mappa SSID → Nome zona
+    ssid_zone_map = {z["ssid"]: z["zone"] for z in extra_zones if "ssid" in z and "zone" in z}
 
     entities = [
-        WifiSensorTrackerEntity(hass, sensor, ssid_home, consider_home)
+        WifiSensorTrackerEntity(hass, sensor, ssid_home, ssid_zone_map, consider_home)
         for sensor in sensors
     ]
     async_add_entities(entities)
@@ -27,7 +33,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class WifiSensorTrackerEntity(TrackerEntity):
     """Rappresentazione di un tracker Wi-Fi basato su sensore."""
 
-    def __init__(self, hass, sensor, ssid_home, consider_home):
+    def __init__(self, hass, sensor, ssid_home, ssid_zone_map, consider_home):
         self.hass = hass
         self._sensor = sensor
         self._ssid_home = ssid_home
@@ -35,6 +41,8 @@ class WifiSensorTrackerEntity(TrackerEntity):
         self._attr_unique_id = sensor.replace("sensor.", "").replace(".", "_").replace("_connection", "")
         self._attr_should_poll = False
         self._attr_is_connected = False
+        self._ssid_zone_map = ssid_zone_map or {}
+        self._current_zone = "not_home"
         self._consider_home = timedelta(seconds=consider_home)
         self._remove_listener = None
         self._exit_timer = None  # inizializza il timer
@@ -45,7 +53,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
 
     @property
     def state(self):
-        return "home" if self._attr_is_connected else "not_home"
+        return self._current_zone if self._attr_is_connected else "not_home"
 
     def _schedule_exit(self):
         """Programma il cambio di stato dopo il tempo consider_home."""
@@ -91,9 +99,14 @@ class WifiSensorTrackerEntity(TrackerEntity):
             self.async_write_ha_state()
             return
 
-        if state.state == self._ssid_home:
+        if state.state == self._ssid_home or state.state in self._ssid_zone_map:
             self._attr_is_connected = True
+            if state.state == self._ssid_home:
+                self._current_zone = "home"
+            else:
+                self._current_zone = self._ssid_zone_map[state.state]
             self.async_write_ha_state()
+            
             # se c’era un timer di uscita → annullalo
             if self._exit_timer:
                 self._exit_timer()
