@@ -119,6 +119,7 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: Dict[str, str] = {}
 
         zone_options = await self._get_zone_options()
+        zone_options.insert(0, {value:"", "label":"- Select zone -"})
 
         schema = vol.Schema(
             {
@@ -193,6 +194,10 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, entry: config_entries.ConfigEntry) -> None:
         self._entry = entry
         self._zones_to_edit: List[Dict[str, str]] = list(self._entry.data.get("extra_zones", []))
+        #Pulisce flag "delete" lasciati da un eventual flow interrotto
+        for z in self._zones_to_edit:
+            if "delete" in z:
+                z.pop("delete", None)
         self._current_index = 0
 
 
@@ -325,6 +330,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
         """Permette modifica/eliminazione/aggiunta delle reti/zone extra."""
         errors: Dict[str, str] = {}
         zone_options = await self._get_zone_options()
+        zone_options.insert(0, {value:"", "label":"- Select zone -"})
 
         # Se abbiamo finito di mostrare tutte le reti esistenti mostriamo form vuoto per eventuale nuova rete
         if self._current_index >= len(self._zones_to_edit):
