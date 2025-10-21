@@ -34,15 +34,25 @@ _LOGGER = logging.getLogger(__package__)
 async def async_setup(hass: HomeAssistant, config: dict):
     """YAML setup (legacy)."""
     if DOMAIN in config:
-        hass.async_create_task(
-            hass.config_entries.flow.async_init(
-                DOMAIN,
-                context={"source": "import"},
-                data=config[DOMAIN],
+        if not any(entry.domain == DOMAIN for entry in hass.config_entries.async_entries(DOMAIN)):
+            hass.async_create_task(
+                hass.config_entries.flow.async_init(
+                    DOMAIN,
+                    context={"source": "import"},
+                    data=config[DOMAIN],
+                )
             )
-        )
+            _LOGGER.warning(
+                 "La configurazione YAML per '%s' è stata importata correttamente. "
+                 "Puoi ora rimuovere o commentare le righe dal tuo configuration.yaml.",
+                 DOMAIN,
+            )
+        else:
+            _LOGGER.warning("È già presente un config entry per %s, la configurazione YAML è ignorata.", DOMAIN)
+
     #WORKAROUND IN ATTESA DELLA MODIFICA DEL CORE
     apply_person_patch()  # Applica la patch al core PersonEntity
+
     return True
 
 
@@ -144,19 +154,4 @@ async def async_soft_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload config entry e rimuove le entità associate."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    entity_registry = er.async_get(hass)
-    entity_entries = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
-
-    if entity_entries:
-        for entity_entry in entity_entries:
-            _LOGGER.debug(
-                "Rimozione entità '%s' creata dal config entry '%s'",
-                entity_entry.entity_id,
-                entry.entry_id,
-            )
-            entity_registry.async_remove(entity_entry.entity_id)
-    else:
-        _LOGGER.debug("Nessuna entità trovata da rimuovere per l'integrazione")
-
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
