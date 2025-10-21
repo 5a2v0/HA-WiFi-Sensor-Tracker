@@ -60,12 +60,18 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         wifi_sensors = await self._get_wifi_sensors()
 
+        # Mantiene i dati digitati se ci sono errori
+        ssid_default = user_input.get("home_wifi_ssid") if user_input else ""
+        sensors_default = user_input.get("sensors") if user_input else []
+        consider_home_default = user_input.get("consider_home", 180) if user_input else 180
+        add_zone_default = user_input.get("add_zone", False) if user_input else False
+
         schema = vol.Schema(
             {
-                vol.Required("home_wifi_ssid"): str,
+                vol.Required("home_wifi_ssid", default=ssid_default): str,
                 vol.Required(
                     "sensors",
-                    default=[],
+                    default=sensors_default,
                 ): selector(
                     {
                         "entity": {
@@ -74,8 +80,8 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         }
                     }
                 ),
-                vol.Optional("consider_home", default=180): int,
-                vol.Optional("add_zone", default=False): bool,  # se true, attiva il flow multistep per l'aggiunta delle reti extra
+                vol.Optional("consider_home", default=consider_home_default): int,
+                vol.Optional("add_zone", default=add_zone_default): bool, # se true, attiva il flow multistep per l'aggiunta delle reti extra
             }
         )
 
@@ -102,7 +108,7 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             add_zone = user_input.get("add_zone", False)
             if add_zone:
-                # Avvia un flow  multi-step per aggiungere extra SSID/zone
+                # Avvia un flow multi-step per aggiungere extra SSID/zone
                 return await self.async_step_add_zones()
 
             # Non è stato selezionato il tasto per aggiungere reti extra, salva tutto e termina
@@ -119,23 +125,28 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: Dict[str, str] = {}
 
         zone_options = await self._get_zone_options()
-        zone_options.insert(0, {"value":"", "label":"- Select zone -"})
+        zone_options.insert(0, {"value": "", "label": "- Select zone -"})
+
+        ssid_zone_default = user_input.get("ssid_zone", "") if user_input else ""
+        zone_name_default = user_input.get("zone_name", "") if user_input else ""
+        add_another_default = user_input.get("add_another", False) if user_input else False
 
         schema = vol.Schema(
             {
-                vol.Optional("ssid_zone", default=""): str,
+                vol.Optional("ssid_zone", default=ssid_zone_default): str,
                 vol.Optional(
                     "zone_name",
-                    default="",
+                    default=zone_name_default,
                 ): selector(
                     {
                         "select": {
                             "options": zone_options,
+                            "mode": "dropdown",
                             "custom_value": False,
                         }
                     }
                 ),
-                vol.Optional("add_another", default=False): bool,
+                vol.Optional("add_another", default=add_another_default): bool,
             }
         )
 
@@ -194,7 +205,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, entry: config_entries.ConfigEntry) -> None:
         self._entry = entry
         self._zones_to_edit: List[Dict[str, str]] = list(self._entry.data.get("extra_zones", []))
-        #Pulisce flag "delete" lasciati da un eventual flow interrotto
+        # Pulisce flag "delete" lasciati da un eventual flow interrotto
         for z in self._zones_to_edit:
             if "delete" in z:
                 z.pop("delete", None)
@@ -258,7 +269,6 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                     {
                         "text": {
                             "multiline": True,
-                            
                         }
                     }
                 ),
@@ -330,25 +340,30 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
         """Permette modifica/eliminazione/aggiunta delle reti/zone extra."""
         errors: Dict[str, str] = {}
         zone_options = await self._get_zone_options()
-        zone_options.insert(0, {"value":"", "label":"- Select zone -"})
+        zone_options.insert(0, {"value": "", "label": "- Select zone -"})
+
+        ssid_zone_default = user_input.get("ssid_zone", "") if user_input else ""
+        zone_name_default = user_input.get("zone_name", "") if user_input else ""
+        add_another_default = user_input.get("add_another", False) if user_input else False
 
         # Se abbiamo finito di mostrare tutte le reti esistenti mostriamo form vuoto per eventuale nuova rete
         if self._current_index >= len(self._zones_to_edit):
             schema = vol.Schema(
                 {
-                    vol.Optional("ssid_zone", default=""): str,
+                    vol.Optional("ssid_zone", default=ssid_zone_default): str,
                     vol.Optional(
                         "zone_name",
-                        default="",
+                        default=zone_name_default,
                     ): selector(
                         {
                             "select": {
                                 "options": zone_options,
+                                "mode": "dropdown",
                                 "custom_value": False,
                             }
                         }
                     ),
-                    vol.Optional("add_another", default=False): bool,
+                    vol.Optional("add_another", default=add_another_default): bool,
                 }
             )
 
@@ -407,6 +422,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                     {
                         "select": {
                             "options": zone_options,
+                            "mode": "dropdown",
                             "custom_value": False,
                         }
                     }
