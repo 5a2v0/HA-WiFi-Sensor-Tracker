@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.helpers.selector import selector
+from homeassistant.helpers.selector import selector, SelectSelector, SelectSelectorConfig
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import area_registry as ar
 from . import DOMAIN, async_soft_reload_entry
@@ -18,12 +18,10 @@ _EXTRA_ZONES = "extra_zones"
 class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Gestisci il config flow for Wi-Fi Sensor Tracker."""
 
-
     VERSION = 1
 
-
     def __init__(self) -> None:
-        """Inizializza il  flow"""
+        """Inizializza il flow"""
         self._base_config: Dict[str, Any] = {}
         self._extra_zones: List[Dict[str, str]] = []
 
@@ -68,9 +66,10 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         schema = vol.Schema(
             {
-                vol.Required("home_wifi_ssid", default=ssid_default): str,
+                vol.Required("home_wifi_ssid", description={"translation_key": "home_wifi_ssid"}, default=ssid_default): str,
                 vol.Required(
                     "sensors",
+                    description={"translation_key": "sensors"},
                     default=sensors_default,
                 ): selector(
                     {
@@ -80,8 +79,8 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         }
                     }
                 ),
-                vol.Optional("consider_home", default=consider_home_default): int,
-                vol.Optional("add_zone", default=add_zone_default): bool, # se true, attiva il flow multistep per l'aggiunta delle reti extra
+                vol.Optional("consider_home", description={"translation_key": "consider_home"}, default=consider_home_default): int,
+                vol.Optional("add_zone", description={"translation_key": "add_zone"}, default=add_zone_default): bool,
             }
         )
 
@@ -90,32 +89,32 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             sensors = user_input.get("sensors", [])
 
             if not ssid:
-                errors["home_wifi_ssid"] = "Scrivi il nome della rete Wi-Fi Home"
-                return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
-            if len(ssid.encode("utf-8")) > 32:
-                errors["home_wifi_ssid"] = "Il nome della rete non può superare i 32 byte"
-                return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
-            if not sensors:
-                errors["sensors"] = "Seleziona almeno un sensore"
+                errors["base"] = "missing_ssid"
+            elif len(ssid.encode("utf-8")) > 32:
+                errors["base"] = "ssid_too_long"
+            elif not sensors:
+                errors["base"] = "no_sensors"
+            if errors:
                 return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
-            # Conservo in memoria l'attuale configurazone base
-            self._base_config = {
-                "home_wifi_ssid": user_input["home_wifi_ssid"],
-                "sensors": sensors,
-                "consider_home": user_input.get("consider_home", 180),
-            }
+            else:
+                # Conservo in memoria l'attuale configurazone base
+                self._base_config = {
+                    "home_wifi_ssid": user_input["home_wifi_ssid"],
+                    "sensors": sensors,
+                    "consider_home": user_input.get("consider_home", 180),
+                }
 
-            add_zone = user_input.get("add_zone", False)
-            if add_zone:
-                # Avvia un flow multi-step per aggiungere extra SSID/zone
-                return await self.async_step_add_zones()
+                add_zone = user_input.get("add_zone", False)
+                if add_zone:
+                    # Avvia un flow multi-step per aggiungere extra SSID/zone
+                    return await self.async_step_add_zones()
 
-            # Non è stato selezionato il tasto per aggiungere reti extra, salva tutto e termina
-            data = dict(self._base_config)
-            # Se non è stata configurata alcuna rete extra, crea una lista vuota
-            data["extra_zones"] = list(self._extra_zones)
-            return self.async_create_entry(title="Wi-Fi Sensor Tracker", data=data)
+                # Non è stato selezionato il tasto per aggiungere reti extra, salva tutto e termina
+                data = dict(self._base_config)
+                # Se non è stata configurata alcuna rete extra, crea una lista vuota
+                data["extra_zones"] = list(self._extra_zones)
+                return self.async_create_entry(title="Wi-Fi Sensor Tracker", data=data)
 
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
@@ -125,7 +124,7 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: Dict[str, str] = {}
 
         zone_options = await self._get_zone_options()
-        zone_options.insert(0, {"value": "", "label": "- Select zone -"})
+        zone_options.insert(0, {"value": "", "label": "-"})
 
         ssid_zone_default = user_input.get("ssid_zone", "") if user_input else ""
         zone_name_default = user_input.get("zone_name", "") if user_input else ""
@@ -133,9 +132,10 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         schema = vol.Schema(
             {
-                vol.Optional("ssid_zone", default=ssid_zone_default): str,
+                vol.Optional("ssid_zone", description={"translation_key": "ssid_zone"}, default=ssid_zone_default): str,
                 vol.Optional(
                     "zone_name",
+                    description={"translation_key": "zone_name"},
                     default=zone_name_default,
                 ): selector(
                     {
@@ -146,7 +146,7 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         }
                     }
                 ),
-                vol.Optional("add_another", default=add_another_default): bool,
+                vol.Optional("add_another", description={"translation_key": "add_another"}, default=add_another_default): bool,
             }
         )
 
@@ -164,14 +164,14 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Se uno è compilato e l'altro no, restituisci errore
             if (not ssid_zone and zone_name) or (ssid_zone and not zone_name):
                 if not ssid_zone:
-                    errors["ssid_zone"] = "Inserisci l'SSID della rete"
-                if not zone_name:
-                    errors["zone_name"] = "Inserisci/Seleziona il nome della zona"
+                    errors["base"] = "ssid_missing"
+                elif not zone_name:
+                    errors["base"] = "zone_missing"
                 return self.async_show_form(step_id="add_zones", data_schema=schema, errors=errors)
 
             # Controlla il nome inserito per la rete
             if len(ssid_zone.encode("utf-8")) > 32:
-                errors["ssid_zone"] = "Il nome della rete non può superare i 32 byte"
+                errors["base"] = "ssid_too_long"
                 return self.async_show_form(step_id="add_zones", data_schema=schema, errors=errors)
 
             # Se entrambi i campi sono compilati correttamente, memorizza la rete
@@ -241,10 +241,12 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
             {
                 vol.Required(
                     "home_wifi_ssid",
+                    description={"translation_key": "home_wifi_ssid"},
                     default=self._entry.data.get("home_wifi_ssid"),
                 ): str,
                 vol.Required(
                     "sensors",
+                    description={"translation_key": "sensors"},
                     default=self._entry.data.get("sensors", []),
                 ): selector(
                     {
@@ -256,11 +258,13 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 ),
                 vol.Optional(
                     "consider_home",
+                    description={"translation_key": "consider_home"},
                     default=self._entry.data.get("consider_home", 180),
                 ): int,
                 # Mostra una lista delle zone aggiuntive già memorizzate
                 vol.Optional(
                     "extra_zones_preview",
+                    description={"translation_key": "extra_zones_preview"},
                     default="\n".join(
                         f"SSID: {z.get('ssid', '?')} → Zona: {z.get('zone', '?')}"
                         for z in self._zones_to_edit if not z.get("delete")
@@ -272,7 +276,21 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                         }
                     }
                 ),
-                vol.Optional("manage_zones", default=False): bool,
+                #vol.Optional("manage_zones", default=False): bool,
+                vol.Optional(
+                    "zone_action",
+                    #default="none",
+                    description={"translation_key": "zone_action"},
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[
+                            "manage",
+                            "add"
+                        ],
+                        mode="dropdown",
+                        translation_key="zone_action_option"
+                    )
+                ),
             }
         )
 
@@ -281,57 +299,64 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
             new_ssid = (user_input.get("home_wifi_ssid") or "").strip()
             new_sensors = set(user_input.get("sensors", []))
             new_consider_home = user_input.get("consider_home", 180)
-            manage_zones = user_input.get("manage_zones", False)
-            
+            #manage_zones = user_input.get("manage_zones", False)
+            action = user_input.get("zone_action", "none")
+
             old_ssid = self._entry.data.get("home_wifi_ssid")
             old_sensors = set(self._entry.data.get("sensors", []))
             old_consider_home = self._entry.data.get("consider_home", 180)
 
             if not new_ssid:
-                errors["home_wifi_ssid"] = "Scrivi il nome della rete Wi-Fi Home"
+                errors["base"] = "missing_ssid"
+            elif len(new_ssid.encode("utf-8")) > 32:
+                errors["base"] = "ssid_too_long"
+            elif not new_sensors:
+                errors["base"] = "no_sensors"
+            if errors:
                 return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
-            if len(new_ssid.encode("utf-8")) > 32:
-                errors["new_ssid"] = "Il nome della rete non può superare i 32 byte"
-            if not new_sensors:
-                errors["sensors"] = "Seleziona almeno un sensore"
-                return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
 
-            sensors_to_add = new_sensors - old_sensors
-            sensors_to_remove = old_sensors - new_sensors      
-            ssid_changed = new_ssid != old_ssid
-            consider_home_changed = new_consider_home != old_consider_home
-            
-             # 3. Rimuove le entità dei tracker legati ad eventuali sensori eliminati
-            if sensors_to_remove:
-                entity_registry = er.async_get(self.hass)
-                for sensor in sensors_to_remove:
-                    entity_id = f"device_tracker.{sensor.replace('sensor.', '').replace('.', '_').replace('_connection', '')}"
-                    entry = entity_registry.async_get(entity_id)
-                    if entry:
-                        entity_registry.async_remove(entry.entity_id)
-            
-            # 4 Salva i dati nel config entry
-            # Conserva temporaneamente i dati in memoria
-            self._base_data = {
-                "home_wifi_ssid": new_ssid,
-                "sensors": list(new_sensors),
-                "consider_home": new_consider_home,
-            }
-            
-            # Verifica se sono variate le zone aggiuntive ed in caso salva tutto tramite la funzione
-            if manage_zones:
-                return await self.async_step_edit_zones()
-                
-            # Se invece non deve gestire zone, salva la configurazione attuale
-            data = dict(self._base_data)
-            data["extra_zones"] = list(self._zones_to_edit)
-            self.hass.config_entries.async_update_entry(self._entry, data=data)
+            else:
+                sensors_to_add = new_sensors - old_sensors
+                sensors_to_remove = old_sensors - new_sensors
+                ssid_changed = new_ssid != old_ssid
+                consider_home_changed = new_consider_home != old_consider_home
 
-            # Se sono state fatte modifiche, ricarica l'integrazione
-            if sensors_to_add or sensors_to_remove or ssid_changed or consider_home_changed:
-                await async_soft_reload_entry(self.hass, self._entry)
+                # 3. Rimuove le entità dei tracker legati ad eventuali sensori eliminati
+                if sensors_to_remove:
+                    entity_registry = er.async_get(self.hass)
+                    for sensor in sensors_to_remove:
+                        entity_id = f"device_tracker.{sensor.replace('sensor.', '').replace('.', '_').replace('_connection', '')}"
+                        entry = entity_registry.async_get(entity_id)
+                        if entry:
+                            entity_registry.async_remove(entry.entity_id)
 
-            return self.async_create_entry(title="", data={})
+                # 4 Salva i dati nel config entry
+                # Conserva temporaneamente i dati in memoria
+                self._base_data = {
+                    "home_wifi_ssid": new_ssid,
+                    "sensors": list(new_sensors),
+                    "consider_home": new_consider_home,
+                }
+
+                # Verifica se l'utente ha scelto di gestire le reti extra
+                #if manage_zones:
+                #    return await self.async_step_edit_zones()
+                if action == "manage":
+                    return await self.async_step_edit_zones()
+                elif action == "add":
+                    self._current_index = len(self._zones_to_edit)
+                    return await self.async_step_edit_zones()
+
+                # Se invece non deve gestire zone, salva la configurazione attuale
+                data = dict(self._base_data)
+                data["extra_zones"] = list(self._zones_to_edit)
+                self.hass.config_entries.async_update_entry(self._entry, data=data)
+
+                # Se sono state fatte modifiche, ricarica l'integrazione
+                if sensors_to_add or sensors_to_remove or ssid_changed or consider_home_changed:
+                    await async_soft_reload_entry(self.hass, self._entry)
+
+                return self.async_create_entry(title="", data={})
 
         return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
 
@@ -340,7 +365,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
         """Permette modifica/eliminazione/aggiunta delle reti/zone extra."""
         errors: Dict[str, str] = {}
         zone_options = await self._get_zone_options()
-        zone_options.insert(0, {"value": "", "label": "- Select zone -"})
+        zone_options.insert(0, {"value": "", "label": "-"})
 
         ssid_zone_default = user_input.get("ssid_zone", "") if user_input else ""
         zone_name_default = user_input.get("zone_name", "") if user_input else ""
@@ -350,9 +375,10 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
         if self._current_index >= len(self._zones_to_edit):
             schema = vol.Schema(
                 {
-                    vol.Optional("ssid_zone", default=ssid_zone_default): str,
+                    vol.Optional("ssid_zone", description={"translation_key": "ssid_zone"}, default=ssid_zone_default): str,
                     vol.Optional(
                         "zone_name",
+                        description={"translation_key": "zone_name"},
                         default=zone_name_default,
                     ): selector(
                         {
@@ -363,7 +389,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                             }
                         }
                     ),
-                    vol.Optional("add_another", default=add_another_default): bool,
+                    vol.Optional("add_another", description={"translation_key": "add_another"}, default=add_another_default): bool,
                 }
             )
 
@@ -384,19 +410,20 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 # Se uno è compilato e l'altro no, restituisci errore
                 if (ssid_zone and not zone_name) or (zone_name and not ssid_zone):
                     if not ssid_zone:
-                        errors["ssid_zone"] = "Inserisci SSID"
+                        errors["base"] = "ssid_missing"
                     if not zone_name:
-                        errors["zone_name"] = "Inserisci o seleziona la zona"
+                        errors["base"] = "zone_missing"
                     return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
 
                 # Controlla il nome inserito per la rete
                 if len(ssid_zone.encode("utf-8")) > 32:
-                    errors["ssid_zone"] = "Il nome della rete non può superare i 32 byte"
+                    errors["base"] = "ssid_too_long"
                     return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
 
                 # Se entrambi i campi sono compilati correttamente, memorizza la rete
                 self._zones_to_edit.append({"ssid": ssid_zone, "zone": zone_name})
                 if add_another:
+                    self._current_index = len(self._zones_to_edit)
                     return await self.async_step_edit_zones()
 
                 # Non è stato selezionato il tasto aggiunti altra rete, salva tutto e termina
@@ -414,9 +441,10 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
         current = self._zones_to_edit[self._current_index]
         schema = vol.Schema(
             {
-                vol.Required("ssid_zone", default=current.get("ssid", "")): str,
+                vol.Required("ssid_zone", description={"translation_key": "ssid_zone"}, default=current.get("ssid", "")): str,
                 vol.Required(
                     "zone_name",
+                    description={"translation_key": "zone_name"},
                     default=current.get("zone", ""),
                 ): selector(
                     {
@@ -427,7 +455,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                         }
                     }
                 ),
-                vol.Optional("delete", default=False): bool,
+                vol.Optional("delete", description={"translation_key": "delete"}, default=False): bool,
             }
         )
 
@@ -441,14 +469,14 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 # Se uno è compilato e l'altro no, restituisci errore
                 if (ssid_zone and not zone_name) or (zone_name and not ssid_zone):
                     if not ssid_zone:
-                        errors["ssid_zone"] = "Inserisci SSID"
+                        errors["base"] = "ssid_missing"
                     if not zone_name:
-                        errors["zone_name"] = "Inserisci o seleziona la zona"
+                        errors["base"] = "zone_missing"
                     return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
                     
                 # Controlla il nome inserito per la rete
                 if len(ssid_zone.encode("utf-8")) > 32:
-                    errors["ssid_zone"] = "Il nome della rete non può superare i 32 byte"
+                    errors["base"] = "ssid_too_long"
                     return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
                     
                 # Se entrambi i campi sono compilati correttamente, memorizza la rete
