@@ -1,0 +1,71 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Wi-Fi Sensor Tracker Configuration",
+        "description": "Set up your main Wi-Fi network and the related sensors.",
+        "data": {
+          "home_wifi_ssid": "Home Wi-Fi SSID",
+          "sensors": "Wi-Fi Sensors",
+          "consider_home": "Time (seconds) to still consider \"at home\" after disconnection",
+          "add_zone": "Add extra Wi-Fi networks/zones"
+        }
+      },
+      "add_zones": {
+        "title": "Add extra Wi-Fi/Zone",
+        "description": "Link an additional SSID to a Home Assistant zone.",
+        "data": {
+          "ssid_zone": "SSID of the additional network",
+          "zone_name": "Select the zone",
+          "add_another": "Add another network"
+        }
+      }
+    },
+    "error": {
+      "missing_ssid": "Enter the Wi-Fi network name",
+      "ssid_too_long": "The network name cannot exceed 32 bytes",
+      "no_sensors": "Select at least one Wi-Fi sensor",
+      "ssid_missing": "Enter the SSID of the network",
+      "zone_missing": "Select a valid zone"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Modify Wi-Fi Sensor Tracker settings",
+        "description": "Update the base configuration or manage additional networks.",
+        "data": {
+          "home_wifi_ssid": "Home Wi-Fi SSID",
+          "sensors": "Wi-Fi Sensors",
+          "consider_home": "Time (s) to still consider \"at home\" after disconnection",
+          "extra_zones_preview": "Configured extra networks/zones",
+          "zone_action": "Action to perform"
+        }
+      },
+      "edit_zones": {
+        "title": "Manage extra networks/zones",
+        "description": "Edit or add extra networks linked to zones.",
+        "data": {
+          "ssid_zone": "SSID of the additional network",
+          "zone_name": "Associated zone",
+          "add_another": "Add another network"
+        }
+      }
+    },
+    "selector": {
+      "zone_action_option": {
+        "options": {
+          "manage": "Manage existing networks/zones",
+          "add": "Add new network/zone"
+        }
+      }
+    },
+    "error": {
+      "missing_ssid": "Enter the Wi-Fi network name",
+      "ssid_too_long": "The network name cannot exceed 32 bytes",
+      "no_sensors": "Select at least one sensor",
+      "ssid_missing": "Enter the SSID of the network",
+      "zone_missing": "Select a valid zone"
+    }
+  }
+}
