@@ -52,20 +52,20 @@
         }
       }
     },
-    "selector": {
-      "zone_action_option": {
-        "options": {
-          "manage": "Manage existing networks/zones",
-          "add": "Add new network/zone"
-        }
-      }
-    },
     "error": {
       "missing_ssid": "Enter the Wi-Fi network name",
       "ssid_too_long": "The network name cannot exceed 32 bytes",
       "no_sensors": "Select at least one sensor",
       "ssid_missing": "Enter the SSID of the network",
       "zone_missing": "Select a valid zone"
+    }
+  },
+  "selector": {
+    "zone_action_option": {
+    "options": {
+      "manage": "Manage existing networks/zones",
+      "add": "Add new network/zone"
+      }
     }
   }
 }
