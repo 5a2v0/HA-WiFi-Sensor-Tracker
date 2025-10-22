@@ -52,20 +52,20 @@
         }
       }
     },
-    "selector": {
-      "zone_action_option": {
-        "options": {
-          "manage": "Modifica reti extra",
-          "add": "Aggiungi rete extra"
-        }
-      }
-    },
     "error": {
       "missing_ssid": "Inserisci il nome della rete Wi-Fi",
       "ssid_too_long": "Il nome della rete non può superare i 32 byte",
       "no_sensors": "Seleziona almeno un sensore",
       "ssid_missing": "Inserisci l'SSID della rete",
       "zone_missing": "Seleziona una zona valida"
+    }
+  },
+  "selector": {
+    "zone_action_option": {
+    "options": {
+      "manage": "Modifica reti extra",
+      "add": "Aggiungi rete extra"
+      }
     }
   }
 }
