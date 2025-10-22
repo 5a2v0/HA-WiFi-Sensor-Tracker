@@ -1,0 +1,71 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurazione Wi-Fi Sensor Tracker",
+        "description": "Configura la rete Wi-Fi principale e i sensori.",
+        "data": {
+          "home_wifi_ssid": "SSID rete Wi-Fi di casa",
+          "sensors": "Sensori Wi-Fi",
+          "consider_home": "Tempo in secondi per considerare ancora \"in casa\" dopo disconnessione",
+          "add_zone": "Aggiungi reti/zone aggiuntive"
+        }
+      },
+      "add_zones": {
+        "title": "Aggiungi rete/zona aggiuntiva",
+        "description": "Collega un SSID extra a una zona di Home Assistant.",
+        "data": {
+          "ssid_zone": "SSID della rete aggiuntiva",
+          "zone_name": "Seleziona la zona",
+          "add_another": "Aggiungi un'altra rete"
+        }
+      }
+    },
+    "error": {
+      "missing_ssid": "Inserisci il nome della rete Wi-Fi",
+      "ssid_too_long": "Il nome della rete non può superare i 32 byte",
+      "no_sensors": "Seleziona almeno un sensore Wi-Fi",
+      "ssid_missing": "Inserisci l'SSID della rete",
+      "zone_missing": "Seleziona una zona valida"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Modifica impostazioni Wi-Fi Sensor Tracker",
+        "description": "Aggiorna la configurazione base o gestisci le reti aggiuntive.",
+        "data": {
+          "home_wifi_ssid": "SSID rete Wi-Fi di casa",
+          "sensors": "Sensori Wi-Fi",
+          "consider_home": "Tempo in secondi per considerare ancora \"in casa\" dopo disconnessione",
+          "extra_zones_preview": "Reti/zone aggiuntive configurate",
+          "zone_action": "Azione da eseguire"
+        }
+      },
+      "edit_zones": {
+        "title": "Gestisci reti/zone aggiuntive",
+        "description": "Modifica o aggiungi reti extra associate alle zone.",
+        "data": {
+          "ssid_zone": "SSID della rete aggiuntiva",
+          "zone_name": "Zona associata",
+          "add_another": "Aggiungi un'altra rete"
+        }
+      }
+    },
+    "selector": {
+      "zone_action_option": {
+        "options": {
+          "manage": "Modifica reti extra",
+          "add": "Aggiungi rete extra"
+        }
+      }
+    },
+    "error": {
+      "missing_ssid": "Inserisci il nome della rete Wi-Fi",
+      "ssid_too_long": "Il nome della rete non può superare i 32 byte",
+      "no_sensors": "Seleziona almeno un sensore",
+      "ssid_missing": "Inserisci l'SSID della rete",
+      "zone_missing": "Seleziona una zona valida"
+    }
+  }
+}
