@@ -5,7 +5,7 @@ import sys
 import urllib.request
 import os
 
-REFERENCE_HASH = "6eb5b353829ab6ec0d256f1ad8d0c4d3e003a0c7"
+REFERENCE_HASH = "6eb5b353829ab6ec0d256f1ad8d0c4d3e003a0c7" #HASH calcolato dalla riga subito SOTTO la @callback della funzione e SENZA l'ultima riga vuota
 
 API_URL_RELEASE = "https://api.github.com/repos/home-assistant/core/releases/latest"
 TARGET_REPO = "5a2v0/HA-WiFi-Sensor-Tracker"
