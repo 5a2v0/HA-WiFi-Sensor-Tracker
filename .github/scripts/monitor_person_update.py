@@ -6,6 +6,7 @@ import urllib.request
 import os
 
 REFERENCE_HASH = "6eb5b353829ab6ec0d256f1ad8d0c4d3e003a0c7"
+
 API_URL_RELEASE = "https://api.github.com/repos/home-assistant/core/releases/latest"
 TARGET_REPO = "5a2v0/HA-WiFi-Sensor-Tracker"
 
@@ -113,7 +114,6 @@ def main():
             print("Nessun GH_TOKEN trovato. Issue non creata.")
             sys.exit(2)
         create_github_issue(token, tag, func_hash)
-        sys.exit(3)
     else:
         print("Nessuna modifica rilevata. Tutto OK.")
 
