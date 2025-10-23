@@ -1,0 +1,23 @@
+name: Monitor Home Assistant Core Person class
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"  # ogni 12 ore
+  workflow_dispatch:        # eseguibile manualmente
+
+jobs:
+  check-person-hash:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run monitor script
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: python .github/scripts/monitor_person_update.py
