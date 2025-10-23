@@ -15,7 +15,7 @@
 | **Author** | [5a2v0](https://github.com/5a2v0) |
 | **Tested HA Version** | 2025.9 or newer |
 | **Config method** | Config Flow (UI only, no YAML) |
-| **Current Version** | 2.1.2 |
+| **Current Version** | 2.1.3 |
 
 ---
 ## <img src="https://twemoji.maxcdn.com/v/latest/svg/1f1ec-1f1e7.svg" width="20"/> English 🇬🇧
@@ -104,7 +104,6 @@ State = **not_home** after disconnection, following the delay defined in `consid
 ## 🚀 Roadmap / Future development
 
 * 🔹 **Multi-SSID / Multi-Zone support:** for now this function works by an applied patch to Person entity from Home Assistant core by our integration. I'm trying to pushing this update to Home Assistant core with a Pull Request on GitHub.
-* 🔹 **Translation:** I would to translate log error messages and config flow forms strings.
 ---
 
 
@@ -192,5 +191,4 @@ Stato = **not_home** dopo disconnessione, dopo l'eventuale tempo in secondi dich
 ## 🚀 Roadmap / Sviluppi futuri
 
 - 🔹 **Multi-SSID / Multi-Zone support:** attualmente questa funzione è offerta grazie ad una patch ad un file del core di Home Assistant che viene applicato dall'integrazione all'avvio. Sto spingendo tramite GitHub per il riconoscimento della funzione in maniera nativa dal core di Home Assistant.  
-- 🔹 **Traduzioni:** In seguito vorrei gestire le traduzioni dei messaggi di log per eventuali errori e le stringhe visibili nel config flow
 ---
