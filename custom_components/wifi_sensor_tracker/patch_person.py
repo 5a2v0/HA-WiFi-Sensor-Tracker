@@ -1,7 +1,9 @@
 """Patch per modificare la logica di aggiornamento di PersonEntity in Home Assistant."""
 import logging
+import inspect
+import hashlib
 from homeassistant.core import callback
-from homeassistant.components.person import Person
+from homeassistant.components.person import Person, _get_latest
 from homeassistant.components.device_tracker import (
     ATTR_SOURCE_TYPE,
     DOMAIN as DEVICE_TRACKER_DOMAIN,
@@ -28,7 +30,40 @@ from homeassistant.const import (
 CONF_DEVICE_TRACKERS = "device_trackers"
 IGNORE_STATES = (STATE_UNKNOWN, STATE_UNAVAILABLE)
 
+
+REFERENCE_HASH = "03003c1662579b5895e9741177ab7aebf2631179" # HASH calcolato a partire dal decoratore @callback della funzione comprensivo degli spazi di indentazione
+
+
 _LOGGER = logging.getLogger(__package__)
+
+
+def _get_function_hash(func) -> str:
+    """Calcola l’hash SHA1 del codice sorgente di una funzione."""
+    try:
+        src = inspect.getsource(func)
+        return hashlib.sha1(src.encode("utf-8")).hexdigest()
+    except Exception as e:
+        _LOGGER.warning("Impossibile calcolare hash per %s: %s", func, e)
+        return ""
+
+
+def apply_person_patch():
+    """Applica la patch solo se la funzione Person._update_state è compatibile."""
+    current_hash = _get_function_hash(Person._update_state)
+
+    if current_hash != REFERENCE_HASH:
+        _LOGGER.warning(
+            "Versione Person del core non compatibile (%s != %s). "
+            "Patch NON applicata. Attendere aggiornamento integrazione.",
+            current_hash,
+            REFERENCE_HASH,
+        )
+        return
+
+    # la funzione è identica alla versione testata
+    Person._update_state = _update_state_custom
+    _LOGGER.debug("Patch Person applicata correttamente (hash %s).", current_hash)
+
 
 @callback
 def _update_state_custom(self) -> None:
@@ -80,15 +115,3 @@ def _update_state_custom(self) -> None:
 
     self._update_extra_state_attributes()
     self.async_write_ha_state()
-
-
-def _get_latest(prev, curr):
-    if prev is None or curr.last_updated > prev.last_updated:
-        return curr
-    return prev
-
-
-def apply_person_patch():
-    """Applica la patch sovrascrivendo la funzione del core."""
-    Person._update_state = _update_state_custom
-    _LOGGER.debug("Patch PersonEntity attiva: supporto zone non-GPS abilitato")
