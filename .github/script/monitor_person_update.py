@@ -110,7 +110,7 @@ def main():
         print("Attenzione: hash modificato! Creazione issue...")
         token = os.environ.get("GH_TOKEN")
         if not token:
-            print("❌ Nessun GH_TOKEN trovato. Issue non creata.")
+            print("Nessun GH_TOKEN trovato. Issue non creata.")
             sys.exit(2)
         create_github_issue(token, tag, func_hash)
         sys.exit(3)
