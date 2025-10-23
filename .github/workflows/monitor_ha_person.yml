@@ -20,4 +20,4 @@ jobs:
       - name: Run monitor script
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: python .github/script/monitor_person_update.py
+        run: python .github/scripts/monitor_person_update.py
