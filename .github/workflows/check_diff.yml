@@ -1,4 +1,4 @@
-name: Run Person Patch Diff
+name: Person Patch for Diff
 
 on:
   workflow_dispatch:  # permette di eseguire manualmente dal tab "Actions"
