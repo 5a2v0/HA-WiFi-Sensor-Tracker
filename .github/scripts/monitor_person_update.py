@@ -5,7 +5,9 @@ import sys
 import urllib.request
 import os
 
-REFERENCE_HASH = "6eb5b353829ab6ec0d256f1ad8d0c4d3e003a0c7" #HASH calcolato dalla riga subito SOTTO la @callback della funzione e SENZA l'ultima riga vuota
+
+#HASH calcolato dalla riga della @callback della funzione comprensiva degli spazi iniziali e con l'ultima riga vuota
+REFERENCE_HASH = "03003c1662579b5895e9741177ab7aebf2631179" #dalla 2025.9.0
 
 API_URL_RELEASE = "https://api.github.com/repos/home-assistant/core/releases/latest"
 TARGET_REPO = "5a2v0/HA-WiFi-Sensor-Tracker"
@@ -19,14 +21,21 @@ def get_latest_release_tag():
 
 
 def get_function_source(code: str, class_name: str, func_name: str) -> str:
-    """Estrae il sorgente esatto di una funzione da una classe usando AST."""
     tree = ast.parse(code)
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef) and node.name == class_name:
             for func in node.body:
                 if isinstance(func, ast.FunctionDef) and func.name == func_name:
                     lines = code.splitlines()
-                    return "\n".join(lines[func.lineno - 1 : func.end_lineno])
+                    start = func.lineno - 1
+                    # Includi decoratori sopra
+                    while start > 0 and lines[start - 1].strip().startswith("@"):
+                        start -= 1
+                    end = func.end_lineno
+                    # Includi riga vuota dopo se c'è
+                    if end < len(lines) and lines[end].strip() == "":
+                        end += 1
+                    return "\n".join(lines[start:end])
     return ""
 
 
