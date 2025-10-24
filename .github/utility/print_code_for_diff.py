@@ -78,3 +78,13 @@ print("-----------------------\n")
 func_hash = compute_hash(func_code)
 print("NUOVO HASH DEL CODICE ORIGINALE:\n")
 print(f"    \"{tag}+\": \"{func_hash}\",")
+
+
+with open("original_code.txt", "w", encoding="utf-8") as f:
+    f.write(func_code)
+
+with open("patched_code.txt", "w", encoding="utf-8") as f:
+    f.write(patched_code)
+
+with open("hash.txt", "w", encoding="utf-8") as f:
+    f.write(f'    "{tag}+": "{func_hash}",\n')
