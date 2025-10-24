@@ -1,0 +1,30 @@
+name: Run Person Patch Diff
+
+on:
+  workflow_dispatch:  # permette di eseguire manualmente dal tab "Actions"
+
+jobs:
+  run_diff:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Run patch diff script
+      run: |
+        python .github/utility/print_code_for_diff.py
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: person_patch_output
+        path: |
+          .github/utility/original_code.txt
+          .github/utility/patched_code.txt
+          .github/utility/hash.txt
