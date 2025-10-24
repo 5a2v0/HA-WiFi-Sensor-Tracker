@@ -2,7 +2,6 @@ import ast
 import hashlib
 import urllib.request
 import re
-import os
 
 def get_function_source(code: str, class_name: str, func_name: str) -> str:
     tree = ast.parse(code)
@@ -80,25 +79,11 @@ func_hash = compute_hash(func_code)
 print("NUOVO HASH DEL CODICE ORIGINALE:\n")
 print(f"    \"{tag}+\": \"{func_hash}\",")
 
-
-# Cartella dove si trovano gli script
-output_dir = ".github/utility"
-
-# Nomi dei file da aggiornare
-files_to_remove = ["original_code.txt", "patched_code.txt", "hash.txt"]
-
-# Rimuove i vecchi file se esistono
-for filename in files_to_remove:
-    path = os.path.join(output_dir, filename)
-    if os.path.exists(path):
-        os.remove(path)
-
-# Ora crea i file nuovi
-with open(os.path.join(output_dir, "original_code.txt"), "w", encoding="utf-8") as f:
+with open(".github/utility/original_code.txt", "w", encoding="utf-8") as f:
     f.write(func_code)
 
-with open(os.path.join(output_dir, "patched_code.txt"), "w", encoding="utf-8") as f:
+with open(".github/utility/patched_code.txt", "w", encoding="utf-8") as f:
     f.write(patched_code)
 
-with open(os.path.join(output_dir, "hash.txt"), "w", encoding="utf-8") as f:
+with open(".github/utility/hash.txt", "w", encoding="utf-8") as f:
     f.write(f'    "{tag}+": "{func_hash}",\n')
