@@ -1,4 +1,4 @@
-"""Patch per modificare la logica di aggiornamento di PersonEntity in Home Assistant."""
+"""Patch per modificare la logica di aggiornamento di Person in Home Assistant."""
 import logging
 import inspect
 import hashlib
@@ -9,7 +9,13 @@ from homeassistant.components.device_tracker import (
     DOMAIN as DEVICE_TRACKER_DOMAIN,
     SourceType,
 )
-from homeassistant.components.zone import ENTITY_ID_HOME
+
+# ENTITY_ID_HOME è disponibile solo da HA 2025.9.0 in poi, questo serve per rendere la patch compatibile con versioni vecchie >= 2024.5.0
+try:
+    from homeassistant.components.zone import ENTITY_ID_HOME
+except ImportError:
+    ENTITY_ID_HOME = "zone.home"
+
 from homeassistant.const import (
     ATTR_EDITABLE,
     ATTR_GPS_ACCURACY,
@@ -30,8 +36,12 @@ from homeassistant.const import (
 CONF_DEVICE_TRACKERS = "device_trackers"
 IGNORE_STATES = (STATE_UNKNOWN, STATE_UNAVAILABLE)
 
-
-REFERENCE_HASH = "03003c1662579b5895e9741177ab7aebf2631179" # HASH calcolato a partire dal decoratore @callback della funzione comprensivo degli spazi di indentazione
+# HASH calcolato a partire dal decoratore @callback della funzione comprensivo degli spazi di indentazione
+REFERENCE_HASHES = {
+    "2024.5.0+": "bad046c4e122478d12e8b59a2e506cfeb4cb5a63",
+    "2025.7.0+": "7751a7e55d376546784156638cfa4d25b0875c35",
+    "2025.9.0+": "03003c1662579b5895e9741177ab7aebf2631179",
+}
 
 
 _LOGGER = logging.getLogger(__package__)
@@ -51,18 +61,17 @@ def apply_person_patch():
     """Applica la patch solo se la funzione Person._update_state è compatibile."""
     current_hash = _get_function_hash(Person._update_state)
 
-    if current_hash != REFERENCE_HASH:
+    if current_hash not in REFERENCE_HASHES.values():
         _LOGGER.warning(
-            "Versione Person del core non compatibile (%s != %s). "
-            "Patch NON applicata. Attendere aggiornamento integrazione.",
+            "Versione Person del core non compatibile (HASH = %s). "
+            "Patch NON applicata. Attendere aggiornamento integrazione o aggiornare Home Assistant.",
             current_hash,
-            REFERENCE_HASH,
         )
         return
 
     # la funzione è identica alla versione testata
     Person._update_state = _update_state_custom
-    _LOGGER.debug("Patch Person applicata correttamente (hash %s).", current_hash)
+    _LOGGER.debug("Patch Person applicata correttamente (HASH = %s).", current_hash)
 
 
 @callback
