@@ -174,6 +174,15 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "ssid_too_long"
                 return self.async_show_form(step_id="add_zones", data_schema=schema, errors=errors)
 
+            # Recupero SSID principale della configurazione base e le altre eventuali reti per le zone extra già salvate
+            home_ssid = self._base_config.get("home_wifi_ssid", "").strip()
+            existing_ssids = [home_ssid] + [z["ssid"].strip() for z in self._extra_zones]
+
+            # Evita di inserire un SSID già configurato (case-sensitive, come da standard Wi-Fi)
+            if ssid_zone in existing_ssids:
+                errors["base"] = "ssid_already_exists"
+                return self.async_show_form(step_id="add_zones", data_schema=schema, errors=errors)
+
             # Se entrambi i campi sono compilati correttamente, memorizza la rete
             self._extra_zones.append({"ssid": ssid_zone, "zone": zone_name})
 
@@ -342,8 +351,10 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 #if manage_zones:
                 #    return await self.async_step_edit_zones()
                 if action == "manage":
+                    self._mode = "manage"
                     return await self.async_step_edit_zones()
                 elif action == "add":
+                    self._mode = "add"
                     self._current_index = len(self._zones_to_edit)
                     return await self.async_step_edit_zones()
 
@@ -373,33 +384,83 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
 
         # Se abbiamo finito di mostrare tutte le reti esistenti mostriamo form vuoto per eventuale nuova rete
         if self._current_index >= len(self._zones_to_edit):
-            schema = vol.Schema(
-                {
-                    vol.Optional("ssid_zone", description={"translation_key": "ssid_zone"}, default=ssid_zone_default): str,
-                    vol.Optional(
-                        "zone_name",
-                        description={"translation_key": "zone_name"},
-                        default=zone_name_default,
-                    ): selector(
-                        {
-                            "select": {
-                                "options": zone_options,
-                                "mode": "dropdown",
-                                "custom_value": False,
+            if getattr(self, "_mode", "manage") == "manage":
+                # Modalità modifica: abbiamo finito di scorrere le reti, salva tutto
+                data = dict(self._base_data)
+                cleaned = [{"ssid": z["ssid"], "zone": z["zone"]} for z in self._zones_to_edit if not z.get("delete")]
+                data["extra_zones"] = cleaned
+                self.hass.config_entries.async_update_entry(self._entry, data=data)
+                await async_soft_reload_entry(self.hass, self._entry)
+                return self.async_create_entry(title="", data={})
+            else:
+                #Modalità aggiunta, mostriamo form vuoto
+                schema = vol.Schema(
+                    {
+                        vol.Optional("ssid_zone", description={"translation_key": "ssid_zone"}, default=ssid_zone_default): str,
+                        vol.Optional(
+                            "zone_name",
+                            description={"translation_key": "zone_name"},
+                            default=zone_name_default,
+                        ): selector(
+                            {
+                                "select": {
+                                    "options": zone_options,
+                                    "mode": "dropdown",
+                                    "custom_value": False,
+                                }
                             }
-                        }
-                    ),
-                    vol.Optional("add_another", description={"translation_key": "add_another"}, default=add_another_default): bool,
-                }
-            )
+                        ),
+                        vol.Optional("add_another", description={"translation_key": "add_another"}, default=add_another_default): bool,
+                    }
+                )
 
-            if user_input is not None:
-                ssid_zone = (user_input.get("ssid_zone") or "").strip()
-                zone_name = (user_input.get("zone_name") or "").strip()
-                add_another = user_input.get("add_another", False)
+                if user_input is not None:
+                    ssid_zone = (user_input.get("ssid_zone") or "").strip()
+                    zone_name = (user_input.get("zone_name") or "").strip()
+                    add_another = user_input.get("add_another", False)
 
-                if not ssid_zone and not zone_name:
-                    # Schermata nuova rete, nessuna nuova rete ed ssid inseriti, salva tutto e chiudi
+                    if not ssid_zone and not zone_name:
+                        # Schermata nuova rete, nessuna nuova rete ed ssid inseriti, salva tutto e chiudi
+                        data = dict(self._base_data)
+                        cleaned = [{"ssid": z["ssid"], "zone": z["zone"]} for z in self._zones_to_edit if not z.get("delete")]
+                        data["extra_zones"] = cleaned
+                        self.hass.config_entries.async_update_entry(self._entry, data=data)
+                        await async_soft_reload_entry(self.hass, self._entry)
+                        return self.async_create_entry(title="", data={})
+
+                    # Se uno è compilato e l'altro no, restituisci errore
+                    if (ssid_zone and not zone_name) or (zone_name and not ssid_zone):
+                        if not ssid_zone:
+                            errors["base"] = "ssid_missing"
+                        if not zone_name:
+                            errors["base"] = "zone_missing"
+                        return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
+
+                    # Controlla il nome inserito per la rete
+                    if len(ssid_zone.encode("utf-8")) > 32:
+                        errors["base"] = "ssid_too_long"
+                        return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
+
+                    # Recupero SSID principale della configurazione base e le altre eventuali reti per le zone extra già salvate
+                    home_ssid = self._base_data.get("home_wifi_ssid", "").strip()
+                    existing_ssids = [home_ssid] + [
+                        z["ssid"].strip()
+                        for z in self._zones_to_edit
+                        if not z.get("delete")
+                    ]
+
+                    # Evita di inserire un SSID già configurato (case-sensitive, come da standard Wi-Fi)
+                    if ssid_zone in existing_ssids:
+                        errors["base"] = "ssid_already_exists"
+                        return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
+
+                    # Se entrambi i campi sono compilati correttamente, memorizza la rete
+                    self._zones_to_edit.append({"ssid": ssid_zone, "zone": zone_name})
+                    if add_another:
+                        self._current_index = len(self._zones_to_edit)
+                        return await self.async_step_edit_zones()
+
+                    # Non è stato selezionato il tasto aggiunti altra rete, salva tutto e termina
                     data = dict(self._base_data)
                     cleaned = [{"ssid": z["ssid"], "zone": z["zone"]} for z in self._zones_to_edit if not z.get("delete")]
                     data["extra_zones"] = cleaned
@@ -407,34 +468,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                     await async_soft_reload_entry(self.hass, self._entry)
                     return self.async_create_entry(title="", data={})
 
-                # Se uno è compilato e l'altro no, restituisci errore
-                if (ssid_zone and not zone_name) or (zone_name and not ssid_zone):
-                    if not ssid_zone:
-                        errors["base"] = "ssid_missing"
-                    if not zone_name:
-                        errors["base"] = "zone_missing"
-                    return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
-
-                # Controlla il nome inserito per la rete
-                if len(ssid_zone.encode("utf-8")) > 32:
-                    errors["base"] = "ssid_too_long"
-                    return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
-
-                # Se entrambi i campi sono compilati correttamente, memorizza la rete
-                self._zones_to_edit.append({"ssid": ssid_zone, "zone": zone_name})
-                if add_another:
-                    self._current_index = len(self._zones_to_edit)
-                    return await self.async_step_edit_zones()
-
-                # Non è stato selezionato il tasto aggiunti altra rete, salva tutto e termina
-                data = dict(self._base_data)
-                cleaned = [{"ssid": z["ssid"], "zone": z["zone"]} for z in self._zones_to_edit if not z.get("delete")]
-                data["extra_zones"] = cleaned
-                self.hass.config_entries.async_update_entry(self._entry, data=data)
-                await async_soft_reload_entry(self.hass, self._entry)
-                return self.async_create_entry(title="", data={})
-
-            return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
+                return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
 
 
         # Altrimenti mostriamo una rete esistente
@@ -478,7 +512,19 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 if len(ssid_zone.encode("utf-8")) > 32:
                     errors["base"] = "ssid_too_long"
                     return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
-                    
+
+                # Recupero SSID principale della configurazione base e le altre eventuali reti per le zone extra già salvate
+                home_ssid = self._base_data.get("home_wifi_ssid", "").strip()
+                existing_ssids = [home_ssid] + [
+                    z["ssid"].strip() for i, z in enumerate(self._zones_to_edit)
+                    if i != self._current_index and not z.get("delete")
+                ]
+
+                # Evita di inserire un SSID già configurato (case-sensitive, come da standard Wi-Fi)
+                if ssid_zone in existing_ssids:
+                    errors["base"] = "ssid_already_exists"
+                    return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
+    
                 # Se entrambi i campi sono compilati correttamente, memorizza la rete
                 self._zones_to_edit[self._current_index].update({"ssid": ssid_zone, "zone": zone_name})
 
