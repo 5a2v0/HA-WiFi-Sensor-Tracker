@@ -71,31 +71,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 
 async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigEntry):
-    """Dopo 30s invia request_location_update e controlla i sensori e le zone configurate"""
-    await asyncio.sleep(30)
-    _LOGGER.debug("Avvio controllo sensori/zone ed invio request_location_update...")
-    
-    # === INVIO request_location_update ===
-    notify_services = [
-        srv for srv in hass.services.async_services().get("notify", {}).keys()
-        if srv.startswith("mobile_app_")
-    ]
-
-    if not notify_services:
-        _LOGGER.warning("Nessun dispositivo utilizza l'app companion e condivide quindi sensori compatibili con l'integrazione.")
-    else:
-        for srv in notify_services:
-            _LOGGER.debug("Invio request_location_update a %s", srv)
-            try:
-                await hass.services.async_call(
-                    "notify",
-                    srv,
-                    {"message": "request_location_update"},
-                    blocking=False,
-                )
-            except Exception as e:
-                _LOGGER.error("Errore nell'inviare update a %s: %s", srv, e)
-        _LOGGER.debug("Richieste di update inviate a %d dispositivi", len(notify_services))
+    """Controlla i sensori, le zone e gli ssid configurate. Dopo 30s invia request_location_update ai dispositivi con app companion registrata"""
 
     # === CONTROLLO SENSORI ===
     all_sensors = [e for e in hass.states.async_entity_ids("sensor")]
@@ -144,6 +120,48 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
                 "Crea queste zone sulla mappa altrimenti il tracker della persona non potrà mostrare il nome della zona",
                 ", ".join(sorted(missing_zones)),
             )
+
+    # === CONTROLLO SSID CONFIGURATI ===
+    extra_ssid = set()
+    duplicates = []
+    for z in entry.data.get("extra_zones", []):
+        ssid = z.get("ssid")
+        if ssid in extra_ssid:
+            duplicates.append(ssid)
+        else:
+            extra_ssid.add(ssid)
+
+    if duplicates:
+        _LOGGER.warning(
+            "La configurazione contiene SSID duplicati: %s. "
+            "Questo potrebbe causare comportamenti imprevisti. Apri le impostazioni ed elimina le reti/zone extra con stesso SSID",
+            ", ".join(sorted(set(duplicates))),
+        )
+
+    # === INVIO request_location_update AI DISPOSITIVI CON APP COMPANION REGISTRATI ===
+    await asyncio.sleep(30)
+    _LOGGER.debug("Avvio controllo sensori/zone ed invio request_location_update...")
+    
+    notify_services = [
+        srv for srv in hass.services.async_services().get("notify", {}).keys()
+        if srv.startswith("mobile_app_")
+    ]
+
+    if not notify_services:
+        _LOGGER.warning("Nessun dispositivo utilizza l'app companion e condivide quindi sensori compatibili con l'integrazione.")
+    else:
+        for srv in notify_services:
+            _LOGGER.debug("Invio request_location_update a %s", srv)
+            try:
+                await hass.services.async_call(
+                    "notify",
+                    srv,
+                    {"message": "request_location_update"},
+                    blocking=False,
+                )
+            except Exception as e:
+                _LOGGER.error("Errore nell'inviare update a %s: %s", srv, e)
+        _LOGGER.debug("Richieste di update inviate a %d dispositivi", len(notify_services))
 
 
 async def async_soft_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
