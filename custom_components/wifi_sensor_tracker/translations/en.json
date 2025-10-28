@@ -24,6 +24,7 @@
     "error": {
       "missing_ssid": "Enter the Wi-Fi network name",
       "ssid_too_long": "The network name cannot exceed 32 bytes",
+      "ssid_already_exists": "SSID already exists",
       "no_sensors": "Select at least one Wi-Fi sensor",
       "ssid_missing": "Enter the SSID of the network",
       "zone_missing": "Select a valid zone"
@@ -48,13 +49,14 @@
         "data": {
           "ssid_zone": "SSID of the additional network",
           "zone_name": "Associated zone",
-          "add_another": "Add another network"
+          "delete": "Delete"
         }
       }
     },
     "error": {
       "missing_ssid": "Enter the Wi-Fi network name",
       "ssid_too_long": "The network name cannot exceed 32 bytes",
+      "ssid_already_exists": "SSID already exists",
       "no_sensors": "Select at least one sensor",
       "ssid_missing": "Enter the SSID of the network",
       "zone_missing": "Select a valid zone"
