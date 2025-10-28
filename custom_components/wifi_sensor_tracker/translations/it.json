@@ -24,6 +24,7 @@
     "error": {
       "missing_ssid": "Inserisci il nome della rete Wi-Fi",
       "ssid_too_long": "Il nome della rete non può superare i 32 byte",
+      "ssid_already_exists": "Rete SSID già presente",
       "no_sensors": "Seleziona almeno un sensore Wi-Fi",
       "ssid_missing": "Inserisci l'SSID della rete",
       "zone_missing": "Seleziona una zona valida"
@@ -48,13 +49,14 @@
         "data": {
           "ssid_zone": "SSID della rete aggiuntiva",
           "zone_name": "Zona associata",
-          "add_another": "Aggiungi un'altra rete"
+          "delete": "Elimina"
         }
       }
     },
     "error": {
       "missing_ssid": "Inserisci il nome della rete Wi-Fi",
       "ssid_too_long": "Il nome della rete non può superare i 32 byte",
+      "ssid_already_exists": "Rete SSID già presente",
       "no_sensors": "Seleziona almeno un sensore",
       "ssid_missing": "Inserisci l'SSID della rete",
       "zone_missing": "Seleziona una zona valida"
