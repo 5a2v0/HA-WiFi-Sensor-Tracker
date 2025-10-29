@@ -3,7 +3,11 @@ import hashlib
 import urllib.request
 import re
 
-def get_function_source(code: str, class_name: str, func_name: str) -> str:
+# --- Config ---
+tag = "2025.10.3"
+url = f"https://raw.githubusercontent.com/home-assistant/core/{tag}/homeassistant/components/person/__init__.py"
+
+def _get_function_source(code: str, class_name: str, func_name: str) -> str:
     tree = ast.parse(code)
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef) and node.name == class_name:
@@ -19,7 +23,8 @@ def get_function_source(code: str, class_name: str, func_name: str) -> str:
                     return "\n".join(lines[start:end])
     return ""
 
-def add_patch_modifications(func_code: str) -> str:
+
+def _add_patch_modifications(func_code: str) -> str:
     """Aggiunge la variabile extra e il piccolo elif in modo robusto."""
     lines = func_code.splitlines()
     new_lines = []
@@ -29,6 +34,8 @@ def add_patch_modifications(func_code: str) -> str:
         return func_code  # Patch già presente, nulla da fare
     
     variable_added = False
+    elif_state_added = False
+    elif_zone_added = False
 
     add_coordinates = any("coordinates =" in line for line in lines)
 
@@ -50,6 +57,7 @@ def add_patch_modifications(func_code: str) -> str:
             new_lines.append(f"{elif_indent}elif state.state not in (STATE_HOME, STATE_NOT_HOME):")
             # La riga con la nuova variabile va indentata dentro l'elif
             new_lines.append(f"{elif_indent}    latest_non_gps_zone = _get_latest(latest_non_gps_zone, state)")
+            elif_state_added = True
 
         #Inseriamo l'altro blocco elif subito prima della riga elif latest_gps:
         if "elif latest_gps:" in line:
@@ -61,28 +69,34 @@ def add_patch_modifications(func_code: str) -> str:
             new_lines.insert(insert_pos + 1, f"{indent}    latest = latest_non_gps_zone")
             if add_coordinates:
                 new_lines.insert(insert_pos + 2, f"{indent}    coordinates = latest_non_gps_zone")
+            elif_zone_added = True
+
+    # Controlli di coerenza finale
+    if not variable_added:
+        raise RuntimeError("Patch Person: variabile 'latest_non_gps_zone' non aggiunta — struttura inattesa.")
+    if not elif_state_added:
+        raise RuntimeError("Patch Person: blocco 'elif state.state not in (...)' non aggiunto — struttura inattesa.")
+    if not elif_zone_added:
+        raise RuntimeError("Patch Person: blocco 'elif latest_non_gps_zone' non aggiunto — struttura inattesa.")
 
     return "\n".join(new_lines)
 
 
 def compute_hash(func_code: str) -> str:
     return hashlib.sha1(func_code.encode("utf-8")).hexdigest()
-    
-# --- Config ---
-tag = "2025.10.3"
-url = f"https://raw.githubusercontent.com/home-assistant/core/{tag}/homeassistant/components/person/__init__.py"
+
 
 print("Scarico file:", url)
 with urllib.request.urlopen(url) as resp:
     code = resp.read().decode("utf-8")
 
-func_code = get_function_source(code, "Person", "_update_state")
+func_code = _get_function_source(code, "Person", "_update_state")
 
 print("\n--- CODICE ORIGINALE ESTRATTO ---")
 print(func_code)
 print("-----------------------\n")
 
-patched_code = add_patch_modifications(func_code)
+patched_code = _add_patch_modifications(func_code)
 
 print("\n--- CODICE CON PATCH DINAMICA ---")
 print(patched_code)
