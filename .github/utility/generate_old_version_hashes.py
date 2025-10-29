@@ -2,7 +2,14 @@ import ast
 import hashlib
 import urllib.request
 
-def get_function_source(code: str, class_name: str, func_name: str) -> str:
+# --- Config ---
+major_versions = range(2020, 2026)
+minor_versions = range(0, 13)
+patch_versions = range(0, 5)
+
+unique_hashes = set()
+
+def _get_function_source(code: str, class_name: str, func_name: str) -> str:
     tree = ast.parse(code)
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef) and node.name == class_name:
@@ -25,12 +32,6 @@ def fetch_code(url: str) -> str:
     with urllib.request.urlopen(url) as resp:
         return resp.read().decode("utf-8")
 
-# --- Config ---
-major_versions = range(2020, 2026)
-minor_versions = range(0, 13)
-patch_versions = range(0, 5)
-
-unique_hashes = set()
 
 for major in major_versions:
     for minor in minor_versions:
@@ -42,7 +43,7 @@ for major in major_versions:
             except Exception:
                 continue
 
-            func_code = get_function_source(code, "Person", "_update_state")
+            func_code = _get_function_source(code, "Person", "_update_state")
             if func_code:
                 func_hash = compute_hash(func_code)
                 if func_hash not in unique_hashes:
