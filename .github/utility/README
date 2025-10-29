@@ -1,40 +1,3 @@
-## English 🇬🇧
-
-This folder contains utilities to help manage patches for the `Person` class in Home Assistant.  
-
-### Files
-
-1. **print_code_for_diff.py**  
-   - Extracts the `_update_state` function from the current HA version.  
-   - Generates a "patched" version with additional logic (e.g., `latest_non_gps_zone`).  
-   - Computes SHA1 hash of the original function.  
-   - Useful to quickly compare new vs old versions.
-
-2. **generate_old_version_hashes.py**  
-   - Generates a list of unique hashes for older versions of `_update_state`.  
-   - Used once to populate the list of known hashes.
-
-3. **dynamic_person_patch.py**  
-   - Contains logic to dynamically generate the patched `_update_state` function.  
-   - Needs testing in Home Assistant before production use.
-
-### Operational reminder
-
-When a **new HA core version** is released:
-
-1. Extract the updated `_update_state` function and compare it to the already tested "OLD" version.  
-2. Carefully check:  
-   - substantial changes in the function structure;  
-   - new global CONSTANTS to import or manually define;  
-   - patch correctness (no misinserted code).  
-3. If compatible:  
-   - add the new hash to `person_patch.py` if using static logic,  
-   - or to `dynamic_person_patch.py` if using the dynamic `exec()` version.
-
----
-
-## Italiano 🇮🇹
-
 Questa cartella contiene utility per supportare la gestione delle patch della classe `Person` in Home Assistant.  
 
 ### File presenti
@@ -51,17 +14,21 @@ Questa cartella contiene utility per supportare la gestione delle patch della cl
 
 3. **dynamic_person_patch.py**  
    - Contiene la logica per generare dinamicamente la funzione `_update_state` patchata.  
-   - Ancora da testare su Home Assistant prima di usarla nella produzione.  
+
+4. **old_person_patch.py**  
+   - Contiene la logica vecchia che staticamente patchava la funzione `_update_state` ma solo su alcune (poche) versioni di Ha.  
 
 ### Promemoria operativo
 
 Quando esce una **nuova versione del core HA**:
 
 1. Estrarre la funzione `_update_state` aggiornata e confrontarla con la versione "VECCHIA" già testata.  
+
 2. Controllare attentamente:  
    - eventuali modifiche sostanziali nella struttura della funzione;  
    - nuove COSTANTI globali da importare o definire manualmente;  
-   - correttezza della patch (nessun inserimento errato di codice).  
+   - correttezza della patch (nessun inserimento/posizionamento errato di codice).  
+
 3. Se la funzione patchata è compatibile:  
-   - aggiungere il nuovo hash al file `person_patch.py` se si usa ancora la logica statica,  
-   - oppure a `dynamic_person_patch.py` se si è passati alla versione dinamica con `exec()`.
+   - aggiungere il nuovo hash al file `person_patch.py` presente nella cartella che contiene i files ufficiali dell'integrazione,  
+   - (opzionale) aggiungere l'hash anche ai file presenti in questa cartella
