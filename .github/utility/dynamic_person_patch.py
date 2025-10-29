@@ -2,7 +2,8 @@
 import logging
 import inspect
 import hashlib
-import ast
+#import ast
+import textwrap
 import re
 from homeassistant.core import callback
 from homeassistant.components.person import Person, _get_latest
@@ -17,7 +18,6 @@ try:
     from homeassistant.components.zone import ENTITY_ID_HOME
 except ImportError:
     ENTITY_ID_HOME = "zone.home"
-
 
 from homeassistant.const import (
     ATTR_EDITABLE,
@@ -53,7 +53,6 @@ REFERENCE_HASHES = {
 
 _LOGGER = logging.getLogger(__package__)
 
-src = 
 
 def _get_function_hash(func) -> str:
     """Calcola l’hash SHA1 del codice sorgente di una funzione."""
@@ -75,6 +74,10 @@ def _add_patch_modifications(func_code: str) -> str:
         return func_code  # Patch già presente, nulla da fare
     
     variable_added = False
+    elif_state_added = False
+    elif_zone_added = False
+
+    add_coordinates = any("coordinates =" in line for line in lines)
 
     for i, line in enumerate(lines):
         new_lines.append(line)
@@ -94,6 +97,27 @@ def _add_patch_modifications(func_code: str) -> str:
             new_lines.append(f"{elif_indent}elif state.state not in (STATE_HOME, STATE_NOT_HOME):")
             # La riga con la nuova variabile va indentata dentro l'elif
             new_lines.append(f"{elif_indent}    latest_non_gps_zone = _get_latest(latest_non_gps_zone, state)")
+            elif_state_added = True
+
+        #Inseriamo l'altro blocco elif subito prima della riga elif latest_gps:
+        if "elif latest_gps:" in line:
+            # Trova indentazione coerente con il blocco if/elif
+            indent = re.match(r"(\s*)", line).group(1)
+            # Aggiungiamo subito prima il nostro blocco
+            insert_pos = len(new_lines) - 1
+            new_lines.insert(insert_pos, f"{indent}elif latest_non_gps_zone:")
+            new_lines.insert(insert_pos + 1, f"{indent}    latest = latest_non_gps_zone")
+            if add_coordinates:
+                new_lines.insert(insert_pos + 2, f"{indent}    coordinates = latest_non_gps_zone")
+            elif_zone_added = True
+
+    # Controlli di coerenza finale
+    if not variable_added:
+        raise RuntimeError("Patch Person: variabile 'latest_non_gps_zone' non aggiunta — struttura inattesa.")
+    if not elif_state_added:
+        raise RuntimeError("Patch Person: blocco 'elif state.state not in (...)' non aggiunto — struttura inattesa.")
+    if not elif_zone_added:
+        raise RuntimeError("Patch Person: blocco 'elif latest_non_gps_zone' non aggiunto — struttura inattesa.")
 
     return "\n".join(new_lines)
 
@@ -112,6 +136,8 @@ def apply_person_patch():
 
     # la funzione del core è una versione conosciuta, possiamo applicare la patch
     original_code = inspect.getsource(Person._update_state)
+    # rimuove l'indentazione eccessiva in comune a tutte le righe perchè importata da dentro una classe
+    original_code = textwrap.dedent(original_code)
     patched_code = _add_patch_modifications(original_code)
     
     # Compila la stringa patchata in un oggetto funzione eseguibile
@@ -121,13 +147,12 @@ def apply_person_patch():
     # Recupera l'oggetto funzione dal contesto locale
     patched_func = local_vars.get("_update_state")
     if not patched_func:
-        _LOGGER.error("Patch Person: exec riuscito, ma _update_state non trovata.")
+        _LOGGER.warning("Patch Person: exec riuscito, ma _update_state non trovata.")
         return
 
     # Sostituisci la funzione originale con quella patchata
     Person._update_state = patched_func
     #Person._update_state = _update_state_custom
-    
     _LOGGER.debug("Patch Person applicata correttamente (HASH = %s).", current_hash)
 
 
