@@ -30,6 +30,8 @@ def add_patch_modifications(func_code: str) -> str:
     
     variable_added = False
 
+    add_coordinates = any("coordinates =" in line for line in lines)
+
     for i, line in enumerate(lines):
         new_lines.append(line)
 
@@ -48,6 +50,17 @@ def add_patch_modifications(func_code: str) -> str:
             new_lines.append(f"{elif_indent}elif state.state not in (STATE_HOME, STATE_NOT_HOME):")
             # La riga con la nuova variabile va indentata dentro l'elif
             new_lines.append(f"{elif_indent}    latest_non_gps_zone = _get_latest(latest_non_gps_zone, state)")
+
+        #Inseriamo l'altro blocco elif subito prima della riga elif latest_gps:
+        if "elif latest_gps:" in line:
+            # Trova indentazione coerente con il blocco if/elif
+            indent = re.match(r"(\s*)", line).group(1)
+            # Aggiungiamo subito prima il nostro blocco
+            insert_pos = len(new_lines) - 1
+            new_lines.insert(insert_pos, f"{indent}elif latest_non_gps_zone:")
+            new_lines.insert(insert_pos + 1, f"{indent}    latest = latest_non_gps_zone")
+            if add_coordinates:
+                new_lines.insert(insert_pos + 2, f"{indent}    coordinates = latest_non_gps_zone")
 
     return "\n".join(new_lines)
 
