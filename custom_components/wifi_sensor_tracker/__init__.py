@@ -7,8 +7,6 @@ from homeassistant.helpers import entity_registry as er
 import homeassistant.helpers.config_validation as cv
 import asyncio
 
-#WORKAROUND IN ATTESA DELLA MODIFICA DEL CORE
-from .patch_person import apply_person_patch
 
 DOMAIN = "wifi_sensor_tracker"
 PLATFORMS = ["device_tracker"]
@@ -50,8 +48,12 @@ async def async_setup(hass: HomeAssistant, config: dict):
         else:
             _LOGGER.warning("È già presente un config entry per %s, la configurazione YAML è ignorata.", DOMAIN)
 
-    #WORKAROUND IN ATTESA DELLA MODIFICA DEL CORE
-    apply_person_patch()  # Applica la patch al core PersonEntity
+    # WORKAROUND IN ATTESA DELLA MODIFICA DEL CORE
+    try:
+        from .patch_person import apply_person_patch
+        apply_person_patch()
+    except Exception as e:
+        _LOGGER.warning("Patch Person: errore nell'importazione o applicazione: %s", e)
 
     return True
 
