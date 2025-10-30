@@ -41,6 +41,8 @@ class WifiSensorTrackerEntity(TrackerEntity):
         self._attr_unique_id = sensor.replace("sensor.", "").replace(".", "_").replace("_connection", "")
         self._attr_should_poll = False
         self._attr_is_connected = False
+        self._attr_latitude = None
+        self._attr_longitude = None
         self._ssid_zone_map = ssid_zone_map or {}
         self._current_zone = "not_home"
         self._consider_home = timedelta(seconds=consider_home)
@@ -54,6 +56,15 @@ class WifiSensorTrackerEntity(TrackerEntity):
     @property
     def state(self):
         return self._current_zone if self._attr_is_connected else "not_home"
+
+    @property
+    def device_state_attributes(self):
+        """Ritorna gli attributi del dispositivo, inclusi lat/lon."""
+        attributes = {
+            "latitude": self._attr_latitude,
+            "longitude": self._attr_longitude,
+        }
+        return attributes
 
     def _schedule_exit(self):
         """Programma il cambio di stato dopo il tempo consider_home."""
@@ -103,8 +114,35 @@ class WifiSensorTrackerEntity(TrackerEntity):
             self._attr_is_connected = True
             if state.state == self._ssid_home:
                 self._current_zone = "home"
+                # Azzeriamo latitude e longitude quando siamo "home"
+                self._attr_latitude = None
+                self._attr_longitude = None
             else:
-                self._current_zone = self._ssid_zone_map[state.state]
+                zone_entity_id = self._ssid_zone_map[state.state]
+                # se la zona extra è proprio "zone.home", trattala come home
+                if zone_entity_id == "zone.home":
+                    self._current_zone = "home"
+                    # Azzeriamo latitude e longitude quando siamo "home"
+                    self._attr_latitude = None
+                    self._attr_longitude = None
+                else:
+                    zone_state = self.hass.states.get(zone_entity_id)
+                    if zone_state:
+                        # friendly name (es. "Lavoro", "Scuola", ecc.)
+                        self._current_zone = zone_state.attributes.get(
+                            "friendly_name",
+                            zone_entity_id.partition("zone.")[2]
+                        )
+                        # Aggiorniamo latitude e longitude se la zona è trovata
+                        self._attr_latitude = zone_state.attributes.get("latitude")
+                        self._attr_longitude = zone_state.attributes.get("longitude")
+                    else:
+                        # fallback: togli "zone." se presente
+                        self._current_zone = zone_entity_id.partition("zone.")[2] or zone_entity_id
+                        # Se la zona non esiste, azzeriamo latitude e longitude
+                        self._attr_latitude = None
+                        self._attr_longitude = None
+                        
             self.async_write_ha_state()
             
             # se c’era un timer di uscita → annullalo
