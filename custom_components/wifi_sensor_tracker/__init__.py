@@ -103,25 +103,43 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
         )
 
     # === CONTROLLO ZONE CONFIGURATE ===
-    configured_zones = set()
     extra_zones = entry.data.get("extra_zones", [])
     if extra_zones:
+
+        # Ottieni tutte le zone esistenti in HA
+        ha_zone_states = hass.states.async_all("zone")
+        # mapping friendly_name → entity_id
+        friendly_to_entity = {z.attributes.get("friendly_name", ""): z.entity_id for z in ha_zone_states}
+        # set di entity_id esistenti
+        ha_entity_ids = {z.entity_id for z in ha_zone_states}
+
+        # Controllo / migrazione delle zone salvate nell'entry
+        updated = False
+        for z in extra_zones:
+            zone_val = z.get("zone", "")
+            # se non è entity_id valido e corrisponde a friendly name, migra
+            if not zone_val.startswith("zone.") and zone_val in friendly_to_entity:
+                z["zone"] = friendly_to_entity[zone_val]
+                updated = True
+                _LOGGER.debug("Migrata zona '%s' → '%s' nell'entry", zone_val, z["zone"])
+
+        # aggiorna entry solo se ci sono stati cambiamenti
+        if updated:
+            data = dict(entry.data)
+            data["extra_zones"] = extra_zones
+            hass.config_entries.async_update_entry(entry, data=data)
+            _LOGGER.debug("Migrazione delle zone extra vecchio formato completata.")
+
+        # Controllo zone mancanti
         configured_zones = {z["zone"] for z in extra_zones if "zone" in z}
-
-        # Ottieni le zone realmente presenti in HA
-        ha_zones = {
-            state.attributes.get("friendly_name", state.entity_id.split(".", 1)[-1])
-            for state in hass.states.async_all("zone")
-        }
-
-        # Fai il diff tra le due liste ed in caso fai partire il messaggio di log
-        missing_zones = configured_zones - ha_zones
+        missing_zones = configured_zones - ha_entity_ids
         if missing_zones:
             _LOGGER.warning(
                 "Alcune zone configurate nell'integrazione non esistono in Home Assistant: %s. "
                 "Crea queste zone sulla mappa altrimenti il tracker della persona non potrà mostrare il nome della zona",
                 ", ".join(sorted(missing_zones)),
             )
+
 
     # === CONTROLLO SSID CONFIGURATI ===
     extra_ssid = set()
