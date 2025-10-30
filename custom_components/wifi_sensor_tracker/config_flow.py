@@ -15,6 +15,44 @@ _BASE = "base"
 _EXTRA_ZONES = "extra_zones"
 
 
+async def _get_wifi_sensors(hass) -> List[str]:
+    """Restituisci la lista di sensori filtrati in base al nome"""
+    entity_reg = er.async_get(hass)
+    all_entities = [e.entity_id for e in entity_reg.entities.values() if e.entity_id.startswith("sensor.")]
+    wifi_sensors = [
+        eid for eid in all_entities
+        if "_wifi_connection" in eid or "_ssid" in eid or "_wi_fi_connection" in eid
+    ]
+    return sorted(wifi_sensors)
+
+
+async def _get_zone_options(hass):
+    """Restituisce una lista di zone (value=entity_id, label=friendly_name)."""
+    zones = []
+    for state in hass.states.async_all("zone"):
+        entity_id = state.entity_id
+        friendly_name = state.attributes.get("friendly_name", entity_id.split(".", 1)[-1])
+        zones.append({"value": entity_id, "label": friendly_name})
+    return sorted(zones, key=lambda z: z["label"].lower())
+
+
+async def _format_extra_zones_preview(hass, extra_zones: List[Dict[str, str]]) -> str:
+    """Restituisce una stringa leggibile con SSID → friendly name zona."""
+    lines = []
+    for z in extra_zones:
+        if z.get("delete"):
+            continue
+        ssid = z.get("ssid", "?")
+        zone_entity_id = z.get("zone", "?")
+        zone_state = hass.states.get(zone_entity_id)
+        if zone_state:
+            zone_label = zone_state.attributes.get("friendly_name", zone_entity_id)
+        else:
+            zone_label = f"{zone_entity_id.partition('zone.')[2]} ⚠"
+        lines.append(f"SSID: {ssid} → Zona: {zone_label}")
+    return "\n".join(lines) or "Nessuna rete/zone aggiuntiva"
+
+
 class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Gestisci il config flow for Wi-Fi Sensor Tracker."""
 
@@ -26,27 +64,6 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._extra_zones: List[Dict[str, str]] = []
 
 
-    async def _get_wifi_sensors(self) -> List[str]:
-        """Restituisci la lista di sensori filtrati in base al nome"""
-        entity_reg = er.async_get(self.hass)
-        all_entities = [e.entity_id for e in entity_reg.entities.values() if e.entity_id.startswith("sensor.")]
-        wifi_sensors = [
-            eid for eid in all_entities
-            if "_wifi_connection" in eid or "_ssid" in eid or "_wi_fi_connection" in eid
-        ]
-        return sorted(wifi_sensors)
-
-
-    async def _get_zone_options(self):
-        """Restituisci una lista delle zone esistenti"""
-        zones = []
-        for state in self.hass.states.async_all("zone"):
-            name = state.attributes.get("friendly_name", state.entity_id.split(".", 1)[-1])
-            zones.append(name)
-        unique = sorted(list(dict.fromkeys(zones)))
-        return [{"value": z, "label": z} for z in unique]
-
-
     async def async_step_import(self, import_config: dict) -> Dict[str, Any]:
         """Importa da eventuale configuration.yaml."""
         return await self.async_step_user(user_input=import_config)
@@ -56,7 +73,7 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Initial step: home SSID, sensors, consider_home, optional add_zone checkbox."""
         errors: Dict[str, str] = {}
 
-        wifi_sensors = await self._get_wifi_sensors()
+        wifi_sensors = await _get_wifi_sensors(self.hass)
 
         # Mantiene i dati digitati se ci sono errori
         ssid_default = user_input.get("home_wifi_ssid") if user_input else ""
@@ -123,7 +140,7 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Step per aggiungere extra SSID / zone (ripetibile)."""
         errors: Dict[str, str] = {}
 
-        zone_options = await self._get_zone_options()
+        zone_options = await _get_zone_options(self.hass)
         zone_options.insert(0, {"value": "", "label": "-"})
 
         ssid_zone_default = user_input.get("ssid_zone", "") if user_input else ""
@@ -152,24 +169,24 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             ssid_zone = (user_input.get("ssid_zone") or "").strip()
-            zone_name = (user_input.get("zone_name") or "").strip()
+            zone_entity_id = (user_input.get("zone_name") or "").strip()
             add_another = user_input.get("add_another", False)
 
             # Schermata nuova rete, nessun ssid e zona inseriti, salva tutto e chiudi
-            if not ssid_zone and not zone_name:
+            if not ssid_zone and not zone_entity_id:
                 data = dict(self._base_config)
                 data["extra_zones"] = list(self._extra_zones)
                 return self.async_create_entry(title="Wi-Fi Sensor Tracker", data=data)
 
             # Se uno è compilato e l'altro no, restituisci errore
-            if (not ssid_zone and zone_name) or (ssid_zone and not zone_name):
+            if (not ssid_zone and zone_entity_id) or (ssid_zone and not zone_entity_id):
                 if not ssid_zone:
                     errors["base"] = "ssid_missing"
-                elif not zone_name:
+                elif not zone_entity_id:
                     errors["base"] = "zone_missing"
                 return self.async_show_form(step_id="add_zones", data_schema=schema, errors=errors)
 
-            # Controlla il nome inserito per la rete
+            # Controlla il nome SSID inserito per la rete
             if len(ssid_zone.encode("utf-8")) > 32:
                 errors["base"] = "ssid_too_long"
                 return self.async_show_form(step_id="add_zones", data_schema=schema, errors=errors)
@@ -184,7 +201,7 @@ class WifiSensorTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_show_form(step_id="add_zones", data_schema=schema, errors=errors)
 
             # Se entrambi i campi sono compilati correttamente, memorizza la rete
-            self._extra_zones.append({"ssid": ssid_zone, "zone": zone_name})
+            self._extra_zones.append({"ssid": ssid_zone, "zone": zone_entity_id})
 
             if add_another:
                 # Mostra un'altro step vuoto
@@ -221,30 +238,11 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
         self._current_index = 0
 
 
-    async def _get_wifi_sensors(self) -> List[str]:
-        entity_reg = er.async_get(self.hass)
-        all_entities = [e.entity_id for e in entity_reg.entities.values() if e.entity_id.startswith("sensor.")]
-        wifi_sensors = [
-            eid for eid in all_entities
-            if "_wifi_connection" in eid or "_ssid" in eid or "_wi_fi_connection" in eid
-        ]
-        return sorted(wifi_sensors)
-
-
-    async def _get_zone_options(self):
-        zones = []
-        for state in self.hass.states.async_all("zone"):
-            name = state.attributes.get("friendly_name", state.entity_id.split(".", 1)[-1])
-            zones.append(name)
-        unique = sorted(list(dict.fromkeys(zones)))
-        return [{"value": z, "label": z} for z in unique]
-
-
     async def async_step_init(self, user_input: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Step principale di modifica base."""
         errors: Dict[str, str] = {}
 
-        wifi_sensors = await self._get_wifi_sensors()
+        wifi_sensors = await _get_wifi_sensors(self.hass)
 
         schema = vol.Schema(
             {
@@ -274,10 +272,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     "extra_zones_preview",
                     description={"translation_key": "extra_zones_preview"},
-                    default="\n".join(
-                        f"SSID: {z.get('ssid', '?')} → Zona: {z.get('zone', '?')}"
-                        for z in self._zones_to_edit if not z.get("delete")
-                    ) or "Nessuna rete/zone aggiuntiva",
+                    default=await _format_extra_zones_preview(self.hass, self._zones_to_edit),
                 ): selector(
                     {
                         "text": {
@@ -285,10 +280,8 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                         }
                     }
                 ),
-                #vol.Optional("manage_zones", default=False): bool,
                 vol.Optional(
                     "zone_action",
-                    #default="none",
                     description={"translation_key": "zone_action"},
                 ): SelectSelector(
                     SelectSelectorConfig(
@@ -308,7 +301,6 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
             new_ssid = (user_input.get("home_wifi_ssid") or "").strip()
             new_sensors = set(user_input.get("sensors", []))
             new_consider_home = user_input.get("consider_home", 180)
-            #manage_zones = user_input.get("manage_zones", False)
             action = user_input.get("zone_action", "none")
 
             old_ssid = self._entry.data.get("home_wifi_ssid")
@@ -375,7 +367,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_edit_zones(self, user_input: Optional[Dict[str, Any]] = None):
         """Permette modifica/eliminazione/aggiunta delle reti/zone extra."""
         errors: Dict[str, str] = {}
-        zone_options = await self._get_zone_options()
+        zone_options = await _get_zone_options(self.hass)
         zone_options.insert(0, {"value": "", "label": "-"})
 
         ssid_zone_default = user_input.get("ssid_zone", "") if user_input else ""
@@ -416,10 +408,10 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
 
                 if user_input is not None:
                     ssid_zone = (user_input.get("ssid_zone") or "").strip()
-                    zone_name = (user_input.get("zone_name") or "").strip()
+                    zone_entity_id = (user_input.get("zone_name") or "").strip()
                     add_another = user_input.get("add_another", False)
 
-                    if not ssid_zone and not zone_name:
+                    if not ssid_zone and not zone_entity_id:
                         # Schermata nuova rete, nessuna nuova rete ed ssid inseriti, salva tutto e chiudi
                         data = dict(self._base_data)
                         cleaned = [{"ssid": z["ssid"], "zone": z["zone"]} for z in self._zones_to_edit if not z.get("delete")]
@@ -429,10 +421,10 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                         return self.async_create_entry(title="", data={})
 
                     # Se uno è compilato e l'altro no, restituisci errore
-                    if (ssid_zone and not zone_name) or (zone_name and not ssid_zone):
+                    if (ssid_zone and not zone_entity_id) or (zone_entity_id and not ssid_zone):
                         if not ssid_zone:
                             errors["base"] = "ssid_missing"
-                        if not zone_name:
+                        if not zone_entity_id:
                             errors["base"] = "zone_missing"
                         return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
 
@@ -454,8 +446,15 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                         errors["base"] = "ssid_already_exists"
                         return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
 
+                    # Recupero le zone esistenti di HA come entity_id
+                    ha_zone_entity_ids = {state.entity_id for state in self.hass.states.async_all("zone")}
+                    # Controllo che la zona selezionata sia valida
+                    if zone_entity_id not in ha_zone_entity_ids:
+                        errors["base"] = "invalid_zone"
+                        return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
+
                     # Se entrambi i campi sono compilati correttamente, memorizza la rete
-                    self._zones_to_edit.append({"ssid": ssid_zone, "zone": zone_name})
+                    self._zones_to_edit.append({"ssid": ssid_zone, "zone": zone_entity_id})
                     if add_another:
                         self._current_index = len(self._zones_to_edit)
                         return await self.async_step_edit_zones()
@@ -471,15 +470,23 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
 
 
-        # Altrimenti mostriamo una rete esistente
+        # Altrimenti mostriamo una rete esistente dopo aver verificato che la relativa zona esista ancora
         current = self._zones_to_edit[self._current_index]
+        zone_entity_id = current.get("zone", "")
+        zone_state = self.hass.states.get(zone_entity_id)
+        # Se la zona esiste ancora, usa il suo ID, altrimenti imposta il valore di default su "-"
+        if zone_state:
+            zone_default = zone_entity_id
+        else:
+            zone_default = "-"
+
         schema = vol.Schema(
             {
                 vol.Required("ssid_zone", description={"translation_key": "ssid_zone"}, default=current.get("ssid", "")): str,
                 vol.Required(
                     "zone_name",
                     description={"translation_key": "zone_name"},
-                    default=current.get("zone", ""),
+                    default=zone_default,
                 ): selector(
                     {
                         "select": {
@@ -498,13 +505,13 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 self._zones_to_edit[self._current_index]["delete"] = True
             else:
                 ssid_zone = (user_input.get("ssid_zone") or "").strip()
-                zone_name = (user_input.get("zone_name") or "").strip()
+                zone_entity_id = (user_input.get("zone_name") or "").strip()
                 
                 # Se uno è compilato e l'altro no, restituisci errore
-                if (ssid_zone and not zone_name) or (zone_name and not ssid_zone):
+                if (ssid_zone and not zone_entity_id) or (zone_entity_id and not ssid_zone):
                     if not ssid_zone:
                         errors["base"] = "ssid_missing"
-                    if not zone_name:
+                    if not zone_entity_id:
                         errors["base"] = "zone_missing"
                     return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
                     
@@ -524,9 +531,16 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 if ssid_zone in existing_ssids:
                     errors["base"] = "ssid_already_exists"
                     return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
-    
+
+                # Recupero le zone esistenti di HA come entity_id
+                ha_zone_entity_ids = {state.entity_id for state in self.hass.states.async_all("zone")}
+                # Controllo che la zona selezionata sia valida
+                if zone_entity_id not in ha_zone_entity_ids:
+                    errors["base"] = "invalid_zone"
+                    return self.async_show_form(step_id="edit_zones", data_schema=schema, errors=errors)
+
                 # Se entrambi i campi sono compilati correttamente, memorizza la rete
-                self._zones_to_edit[self._current_index].update({"ssid": ssid_zone, "zone": zone_name})
+                self._zones_to_edit[self._current_index].update({"ssid": ssid_zone, "zone": zone_entity_id})
 
             self._current_index += 1
             return await self.async_step_edit_zones()
