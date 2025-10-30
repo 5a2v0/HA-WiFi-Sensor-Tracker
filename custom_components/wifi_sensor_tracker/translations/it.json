@@ -59,7 +59,8 @@
       "ssid_already_exists": "Rete SSID già presente",
       "no_sensors": "Seleziona almeno un sensore",
       "ssid_missing": "Inserisci l'SSID della rete",
-      "zone_missing": "Seleziona una zona valida"
+      "zone_missing": "Seleziona una zona valida",
+      "invalid_zone": "La zona selezionata non è valida"
     }
   },
   "selector": {
