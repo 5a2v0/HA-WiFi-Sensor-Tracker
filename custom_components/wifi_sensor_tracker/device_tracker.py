@@ -43,6 +43,8 @@ class WifiSensorTrackerEntity(TrackerEntity):
         self._attr_is_connected = False
         self._attr_latitude = None
         self._attr_longitude = None
+        # Inizializziamo gps_accuracy a None per evitare che il core mostri 0
+        self._attr_gps_accuracy = None
         self._ssid_zone_map = ssid_zone_map or {}
         self._current_zone = "not_home"
         self._consider_home = timedelta(seconds=consider_home)
@@ -58,13 +60,15 @@ class WifiSensorTrackerEntity(TrackerEntity):
         return self._current_zone if self._attr_is_connected else "not_home"
 
     @property
-    def device_state_attributes(self):
-        """Ritorna gli attributi del dispositivo, inclusi lat/lon."""
-        attributes = {
-            "latitude": self._attr_latitude,
-            "longitude": self._attr_longitude,
-        }
-        return attributes
+    def extra_state_attributes(self):
+        """Attributi personalizzati per il tracker Wi-Fi."""
+        attrs = {}
+        if self._attr_latitude is not None and self._attr_longitude is not None:
+            attrs["latitude"] = self._attr_latitude
+            attrs["longitude"] = self._attr_longitude
+        # Forzo l'attributo None che diventerà null in Json e non verrà mostrato nella UI
+        attrs["gps_accuracy"] = self._attr_gps_accuracy
+        return attrs
 
     def _schedule_exit(self):
         """Programma il cambio di stato dopo il tempo consider_home."""
@@ -119,7 +123,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
                 self._attr_longitude = None
             else:
                 zone_entity_id = self._ssid_zone_map[state.state]
-                # se la zona extra è proprio "zone.home", trattala come home
+                # se la zona extra è "zone.home", trattala come home
                 if zone_entity_id == "zone.home":
                     self._current_zone = "home"
                     # Azzeriamo latitude e longitude quando siamo "home"
