@@ -2,42 +2,28 @@
 import logging
 import inspect
 import hashlib
-#import ast
 import textwrap
 import re
 from homeassistant.core import callback
-from homeassistant.components.person import Person, _get_latest
-from homeassistant.components.device_tracker import (
-    ATTR_SOURCE_TYPE,
-    DOMAIN as DEVICE_TRACKER_DOMAIN,
-    SourceType,
-)
-
-# ENTITY_ID_HOME è disponibile solo in versioni recenti di HA, questo serve per rendere la patch compatibile con versioni < 2025.9.0
-try:
-    from homeassistant.components.zone import ENTITY_ID_HOME
-except ImportError:
-    ENTITY_ID_HOME = "zone.home"
-
 from homeassistant.const import (
-    ATTR_EDITABLE,
-    ATTR_GPS_ACCURACY,
-    ATTR_ID,
     ATTR_LATITUDE,
     ATTR_LONGITUDE,
-    ATTR_NAME,
-    CONF_ID,
-    CONF_NAME,
-    EVENT_HOMEASSISTANT_START,
-    SERVICE_RELOAD,
     STATE_HOME,
     STATE_NOT_HOME,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
-
-CONF_DEVICE_TRACKERS = "device_trackers"
-IGNORE_STATES = (STATE_UNKNOWN, STATE_UNAVAILABLE)
+from homeassistant.components.person import (
+    CONF_DEVICE_TRACKERS,
+    IGNORE_STATES,
+    Person,
+    _get_latest,
+)
+from homeassistant.components.device_tracker import (
+    ATTR_SOURCE_TYPE,
+    SourceType,
+)
+from homeassistant.components.zone import ENTITY_ID_HOME
 
 
 # HASH calcolati a partire dal decoratore @callback della funzione comprensivo degli spazi di indentazione
@@ -108,7 +94,17 @@ def _add_patch_modifications(func_code: str) -> str:
             new_lines.insert(insert_pos, f"{indent}elif latest_non_gps_zone:")
             new_lines.insert(insert_pos + 1, f"{indent}    latest = latest_non_gps_zone")
             if add_coordinates:
-                new_lines.insert(insert_pos + 2, f"{indent}    coordinates = latest_non_gps_zone")
+                new_lines.insert(insert_pos + 2, f"{indent}    if (")
+                new_lines.insert(insert_pos + 3, f"{indent}        latest_non_gps_zone.attributes.get(ATTR_LATITUDE) is None")
+                new_lines.insert(insert_pos + 4, f"{indent}        and latest_non_gps_zone.attributes.get(ATTR_LONGITUDE) is None")
+                new_lines.insert(
+                    insert_pos + 5,
+                    indent + '        and (zone := self.hass.states.get(f"zone.{latest_non_gps_zone.state.lower().replace(\' \', \'_\')}"))'
+                )
+                new_lines.insert(insert_pos + 6, f"{indent}    ):")
+                new_lines.insert(insert_pos + 7, f"{indent}        coordinates = zone")
+                new_lines.insert(insert_pos + 8, f"{indent}    else:")
+                new_lines.insert(insert_pos + 9, f"{indent}        coordinates = latest_non_gps_zone")
             elif_zone_added = True
 
     # Controlli di coerenza finale
