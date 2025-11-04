@@ -3,9 +3,20 @@ import hashlib
 import urllib.request
 import re
 
-# --- Config ---
-tag = "2025.10.3"
+
+API_URL_RELEASE = "https://api.github.com/repos/home-assistant/core/releases/latest"
+
+
+def _get_latest_release_tag():
+    """Ritorna il tag della release stabile più recente."""
+    with urllib.request.urlopen(API_URL_RELEASE) as resp:
+        data = json.load(resp)
+    return data["tag_name"]
+
+#tag = "2025.10.3"
+tag = _get_latest_release_tag()
 url = f"https://raw.githubusercontent.com/home-assistant/core/{tag}/homeassistant/components/person/__init__.py"
+
 
 def _get_function_source(code: str, class_name: str, func_name: str) -> str:
     tree = ast.parse(code)
@@ -68,7 +79,17 @@ def _add_patch_modifications(func_code: str) -> str:
             new_lines.insert(insert_pos, f"{indent}elif latest_non_gps_zone:")
             new_lines.insert(insert_pos + 1, f"{indent}    latest = latest_non_gps_zone")
             if add_coordinates:
-                new_lines.insert(insert_pos + 2, f"{indent}    coordinates = latest_non_gps_zone")
+                new_lines.insert(insert_pos + 2, f"{indent}    if (")
+                new_lines.insert(insert_pos + 3, f"{indent}        latest_non_gps_zone.attributes.get(ATTR_LATITUDE) is None")
+                new_lines.insert(insert_pos + 4, f"{indent}        and latest_non_gps_zone.attributes.get(ATTR_LONGITUDE) is None")
+                new_lines.insert(
+                    insert_pos + 5,
+                    indent + '        and (zone := self.hass.states.get(f"zone.{latest_non_gps_zone.state.lower().replace(\' \', \'_\')}"))'
+                )
+                new_lines.insert(insert_pos + 6, f"{indent}    ):")
+                new_lines.insert(insert_pos + 7, f"{indent}        coordinates = zone")
+                new_lines.insert(insert_pos + 8, f"{indent}    else:")
+                new_lines.insert(insert_pos + 9, f"{indent}        coordinates = latest_non_gps_zone")
             elif_zone_added = True
 
     # Controlli di coerenza finale
@@ -82,7 +103,7 @@ def _add_patch_modifications(func_code: str) -> str:
     return "\n".join(new_lines)
 
 
-def compute_hash(func_code: str) -> str:
+def _compute_hash(func_code: str) -> str:
     return hashlib.sha1(func_code.encode("utf-8")).hexdigest()
 
 
@@ -102,7 +123,7 @@ print("\n--- CODICE CON PATCH DINAMICA ---")
 print(patched_code)
 print("-----------------------\n")
 
-func_hash = compute_hash(func_code)
+func_hash = _compute_hash(func_code)
 print("NUOVO HASH DEL CODICE ORIGINALE:\n")
 print(f"    \"{tag}+\": \"{func_hash}\",")
 
