@@ -13,14 +13,14 @@ API_URL_RELEASE = "https://api.github.com/repos/home-assistant/core/releases/lat
 TARGET_REPO = "5a2v0/HA-WiFi-Sensor-Tracker"
 
 
-def get_latest_release_tag():
+def _get_latest_release_tag():
     """Ritorna il tag della release stabile più recente."""
     with urllib.request.urlopen(API_URL_RELEASE) as resp:
         data = json.load(resp)
     return data["tag_name"]
 
 
-def get_function_source(code: str, class_name: str, func_name: str) -> str:
+def _get_function_source(code: str, class_name: str, func_name: str) -> str:
     tree = ast.parse(code)
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef) and node.name == class_name:
@@ -39,7 +39,7 @@ def get_function_source(code: str, class_name: str, func_name: str) -> str:
     return ""
 
 
-def get_existing_issues(token: str):
+def _get_existing_issues(token: str):
     """Restituisce la lista delle issue aperte nel repo target."""
     req = urllib.request.Request(
         f"https://api.github.com/repos/{TARGET_REPO}/issues?state=open",
@@ -53,7 +53,7 @@ def get_existing_issues(token: str):
         return json.load(resp)
 
 
-def issue_already_exists(issues, tag):
+def _issue_already_exists(issues, tag):
     """Controlla se esiste già una issue aperta per quella release."""
     for issue in issues:
         if f"Person._update_state modificata in {tag}" in issue["title"]:
@@ -61,10 +61,10 @@ def issue_already_exists(issues, tag):
     return False
 
 
-def create_github_issue(token: str, tag: str, new_hash: str):
+def _create_github_issue(token: str, tag: str, new_hash: str):
     """Crea una issue automatica nel repo corrente se l'hash differisce."""
-    issues = get_existing_issues(token)
-    if issue_already_exists(issues, tag):
+    issues = _get_existing_issues(token)
+    if _issue_already_exists(issues, tag):
         print(f"Esiste già una issue aperta per {tag}, nessuna nuova creata.")
         return
 
@@ -97,7 +97,7 @@ def create_github_issue(token: str, tag: str, new_hash: str):
 
 
 def main():
-    tag = get_latest_release_tag()
+    tag = _get_latest_release_tag()
     print(f"Ultima release stabile: {tag}")
 
     raw_url = (
@@ -108,7 +108,7 @@ def main():
     with urllib.request.urlopen(raw_url) as resp:
         code = resp.read().decode("utf-8")
 
-    func_code = get_function_source(code, "Person", "_update_state")
+    func_code = _get_function_source(code, "Person", "_update_state")
     if not func_code:
         print("Errore: funzione non trovata.")
         sys.exit(1)
@@ -122,7 +122,7 @@ def main():
         if not token:
             print("Nessun GH_TOKEN trovato. Issue non creata.")
             sys.exit(2)
-        create_github_issue(token, tag, func_hash)
+        _create_github_issue(token, tag, func_hash)
     else:
         print("Nessuna modifica rilevata. Tutto OK.")
 
