@@ -2,6 +2,8 @@
 import logging
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import __version__ as HA_VERSION
+from packaging.version import parse as parse_version
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import entity_registry as er
 import homeassistant.helpers.config_validation as cv
@@ -10,6 +12,7 @@ import asyncio
 
 DOMAIN = "wifi_sensor_tracker"
 PLATFORMS = ["device_tracker"]
+MIN_HA_VERSION = "2020.12.0"
 
 
 CONFIG_SCHEMA = vol.Schema(
@@ -30,8 +33,18 @@ _LOGGER = logging.getLogger(__package__)
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
+    """Home Assistant minimum version check"""
+    if parse_version(HA_VERSION) < parse_version(MIN_HA_VERSION):
+        _LOGGER.warning(
+            "Wi-Fi Sensor Tracking richiede Home Assistant %s o superiore (versione rilevata: %s).",
+            MIN_HA_VERSION, HA_VERSION,
+        )
+        # Interrompe il setup se la versione di Home Assistant è troppo vecchia
+        return False
+
     """YAML setup (legacy)."""
     if DOMAIN in config:
+        # Se non esiste un entry lo creo e importo i dati esistenti
         if not any(entry.domain == DOMAIN for entry in hass.config_entries.async_entries(DOMAIN)):
             hass.async_create_task(
                 hass.config_entries.flow.async_init(
@@ -45,10 +58,11 @@ async def async_setup(hass: HomeAssistant, config: dict):
                  "Puoi ora rimuovere o commentare le righe dal tuo configuration.yaml.",
                  DOMAIN,
             )
+        # Altrimenti ricordo solo che la configurazione Yaml è deprecata
         else:
             _LOGGER.warning("È già presente un config entry per %s, la configurazione YAML è ignorata.", DOMAIN)
 
-    # Patch del core se necessaria, in attesa di eventuale accettazione della PR
+    # Patch del componente Person per versioni del core in cui manca la priorità dei tracker stationary rispetto a quelli gps
     try:
         from .patch_person import apply_person_patch
         apply_person_patch()
@@ -80,15 +94,9 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
     available_sensors = {
         s for s in all_sensors if s.endswith("_wifi_connection") or s.endswith("_ssid") or s.endswith("_wi_fi_connection")
     }
-    
     configured_sensors = set(entry.data.get("sensors", []))
-
-    _LOGGER.debug(
-        "Sensori già configurati: %s",
-        ", ".join(sorted(configured_sensors)),
-    )
-
     missing_sensors = configured_sensors - available_sensors
+
     if missing_sensors:
         _LOGGER.warning(
             "Alcuni sensori configurati non sono più disponibili: %s. Puoi aggiornare la configurazione dell'integrazione per eliminarli e di conseguenza eliminare i tracker collegati.",
@@ -96,6 +104,7 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
         )
 
     new_sensors = available_sensors - configured_sensors
+
     if new_sensors:
         _LOGGER.warning(
             "Rilevati nuovi sensori Wi-Fi compatibili non ancora configurati: %s. Puoi aggiornare la configurazione dell'integrazione per includerli.",
@@ -108,22 +117,22 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
 
         # Ottieni tutte le zone esistenti in HA
         ha_zone_states = hass.states.async_all("zone")
-        # mapping friendly_name → entity_id
+        # Mapping friendly_name → entity_id
         friendly_to_entity = {z.attributes.get("friendly_name", ""): z.entity_id for z in ha_zone_states}
-        # set di entity_id esistenti
+        # Set di entity_id esistenti
         ha_entity_ids = {z.entity_id for z in ha_zone_states}
 
         # Controllo / migrazione delle zone salvate nell'entry
         updated = False
         for z in extra_zones:
             zone_val = z.get("zone", "")
-            # se non è entity_id valido e corrisponde a friendly name, migra
+            # Se non è entity_id valido e corrisponde a friendly name, migra
             if not zone_val.startswith("zone.") and zone_val in friendly_to_entity:
                 z["zone"] = friendly_to_entity[zone_val]
                 updated = True
                 _LOGGER.debug("Migrata zona '%s' → '%s' nell'entry", zone_val, z["zone"])
 
-        # aggiorna entry solo se ci sono stati cambiamenti
+        # Aggiorna entry solo se ci sono stati cambiamenti
         if updated:
             data = dict(entry.data)
             data["extra_zones"] = extra_zones
