@@ -42,9 +42,9 @@ def _patch_update_state(func_code: str) -> str:
 
     variable_added = False
     elif_state_added = False
-    elif_zone_added = True
+    elif_zone_added = False
     add_coordinates = False
-    elif_zone_coordinates = True
+    elif_zone_coordinates = False
 
     # Check se le modifiche esistono già
     for line in lines:
@@ -108,6 +108,7 @@ def _patch_update_state(func_code: str) -> str:
                 new_lines.insert(insert_pos + 8, f"{indent}    else:")
                 new_lines.insert(insert_pos + 9, f"{indent}        coordinates = latest_non_gps_zone")
             elif_zone_added = True
+            elif_zone_coordinates = True
 
         #Se invece l'ultimo blocco elif esiste ma non ha il check sulle coordinate
         elif elif_zone_added and add_coordinates and not elif_zone_coordinates and "latest = latest_non_gps_zone" in line:
