@@ -7,8 +7,8 @@ import os
 
 
 REFERENCE_HASHES = {
-    "_update_state": "03003c1662579b5895e9741177ab7aebf2631179",  #2025.9.0+
-    "_parse_source_state": "82112bc96ed78526273c9873913947e60ef8a9b0",       #INSERIRE L'ULTIMA VERSIONE IN CUI E' CAMBIATA LA DEF
+    "_update_state": "03003c1662579b5895e9741177ab7aebf2631179", #2025.9.0+
+    "_parse_source_state": "82112bc96ed78526273c9873913947e60ef8a9b0", #2025.9.0+
 }
 
 
