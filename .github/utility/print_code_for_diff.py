@@ -42,9 +42,9 @@ def _patch_update_state(func_code: str) -> str:
 
     variable_added = False
     elif_state_added = False
-    elif_zone_added = False
+    elif_zone_added = True
     add_coordinates = False
-    elif_zone_coordinates = False
+    elif_zone_coordinates = True
 
     # Check se le modifiche esistono già
     for line in lines:
