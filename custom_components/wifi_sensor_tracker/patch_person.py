@@ -1,4 +1,4 @@
-"""Patch per modificare la logica di aggiornamento di Person in Home Assistant."""
+# Patch per modificare la logica di aggiornamento di Person in Home Assistant.
 import logging
 import inspect
 import hashlib
@@ -27,25 +27,33 @@ from homeassistant.components.device_tracker import (
 )
 from homeassistant.components.zone import ENTITY_ID_HOME
 
+# Costante da impostare a True nel caso in cui venisse accettata la PR al core di Home Assistant ed uscisse quindi una nuova versione che non necessita le patch
 CORE_ALREADY_UPDATED = False
 
-# HASH calcolati a partire dal decoratore @callback della funzione comprensivo degli spazi di indentazione
+# HASH delle versioni che necessitano di patch calcolati a partire dal decoratore @callback delle funzioni comprensivo degli spazi di indentazione e riga finale vuota
 REFERENCE_HASHES = {
-    "2020.12.0+": "52a9698a456efe17bbcf7fa0185a7031f759a143",
-    "2022.9.0+": "ea54bac9737ee3d4e69b914518cc8652a8c5c848",
-    "2024.2.0+": "82636f83ba7ea4e8e7f15810e4d67d2fea57526c",
-    "2024.5.0+": "bad046c4e122478d12e8b59a2e506cfeb4cb5a63",
-    "2025.7.0+": "7751a7e55d376546784156638cfa4d25b0875c35",
-    "2025.9.0+": "03003c1662579b5895e9741177ab7aebf2631179",
+    "_update_state": {
+        "2020.12.0+": "52a9698a456efe17bbcf7fa0185a7031f759a143",
+        "2022.9.0+":  "ea54bac9737ee3d4e69b914518cc8652a8c5c848",
+        "2024.2.0+":  "82636f83ba7ea4e8e7f15810e4d67d2fea57526c",
+        "2024.5.0+":  "bad046c4e122478d12e8b59a2e506cfeb4cb5a63",
+        "2025.7.0+":  "7751a7e55d376546784156638cfa4d25b0875c35",
+        "2025.9.0+":  "03003c1662579b5895e9741177ab7aebf2631179",
+    },
+    "_parse_source_state": {
+        "2020.12.0+": "f04d0b99840793ccb2baabce97b74fbf28d838cc",
+        "2024.2.0+":  "12bd43983aa84d5a07dd7b0d379ec8b26b4e8c3b",
+        "2024.5.0+":  "49765039bb0f610476f53ea4fbffb4272eff7a9f",
+        "2025.9.0+":  "82112bc96ed78526273c9873913947e60ef8a9b0",
+    }
 }
 
 
 _LOGGER = logging.getLogger(__package__)
 
 
-
 def _get_function_hash(func) -> str:
-    """Calcola l’hash SHA1 del codice sorgente di una funzione."""
+    # Calcola l’hash SHA1 del codice sorgente di una funzione.
     try:
         src = inspect.getsource(func)
         return hashlib.sha1(src.encode("utf-8")).hexdigest()
@@ -54,8 +62,8 @@ def _get_function_hash(func) -> str:
         return ""
 
 
-def _patch_update_state(func_code: str) -> str:
-    """Aggiunge la variabile extra e il piccolo elif in modo robusto."""
+def _modify_update_state(func_code: str) -> str:
+    # Aggiunge la variabile latest_non_gps_zone e i blocchi elif che ne gestiscono la priorità
     lines = func_code.splitlines()
 
     variable_added = False
@@ -145,7 +153,6 @@ def _patch_update_state(func_code: str) -> str:
                 elif_zone_coordinates = True
                 skip_next = True
 
-
     # Controlli di coerenza finale
     if not variable_added:
         raise RuntimeError("Patch Person: variabile 'latest_non_gps_zone' non aggiunta — struttura inattesa.")
@@ -157,8 +164,8 @@ def _patch_update_state(func_code: str) -> str:
     return "\n".join(new_lines)
 
 
-def _patch_parse_source_state(func_code: str) -> str:
-    """Aggiunge il piccolo if in modo robusto."""
+def _modify_parse_source_state(func_code: str) -> str:
+    # Aggiunge il blocco if che nasconde l'attributo GPS_ACCURACY
     lines = func_code.splitlines()
 
     # Check se il blocco if SourceType.GPS esiste già
@@ -189,25 +196,11 @@ def _patch_parse_source_state(func_code: str) -> str:
     return "\n".join(patched_lines)
 
 
-def apply_person_patch():
-    """Applica la patch solo se la funzione Person._update_state è compatibile e necessaria."""
-    current_hash = _get_function_hash(Person._update_state)
-    # se la funzione del core è una versione conosciuta e necessita la patch la applichiamo altrimenti usciamo subito dalla funzione
-    if current_hash not in REFERENCE_HASHES.values():
-        if not CORE_ALREADY_UPDATED:
-            _LOGGER.warning(
-                "Versione Person del core non compatibile (HASH = %s). "
-                "Patch NON applicata. Attendere aggiornamento integrazione o aggiornare Home Assistant.",
-                current_hash,
-            )
-            return
-
-
-    ### PATCH UPDATE_STATE
+def _patch_update_state():
     original_code = inspect.getsource(Person._update_state)
     # rimuove l'indentazione eccessiva in comune a tutte le righe perchè importata da dentro una classe
     original_code = textwrap.dedent(original_code)
-    patched_code = _patch_update_state(original_code)
+    patched_code = _modify_update_state(original_code)
 
     if patched_code != original_code:
         # Compila la stringa patchata in un oggetto funzione eseguibile
@@ -223,11 +216,11 @@ def apply_person_patch():
         Person._update_state = patched_func
 
 
-    ### PATCH PARSE_SOURCE_STATE
+def _patch_parse_source_state():
     original_code = inspect.getsource(Person._parse_source_state)
     # rimuove l'indentazione eccessiva in comune a tutte le righe perchè importata da dentro una classe
     original_code = textwrap.dedent(original_code)
-    patched_code = _patch_parse_source_state(original_code)
+    patched_code = _modify_parse_source_state(original_code)
 
     if patched_code != original_code:
         # Compila la stringa patchata in un oggetto funzione eseguibile
@@ -241,5 +234,36 @@ def apply_person_patch():
             return
         # Sostituisci la funzione originale con quella patchata
         Person._parse_source_state = patched_func
-    
-    _LOGGER.debug("Patch Person applicata/e correttamente o non necessarie (HASH = %s).", current_hash)
+
+
+def apply_person_patch():
+    # Applica la patch solo se le funzioni Person._update_state e _parse_source_state sono compatibili e necessarie.
+    monitored_functions = {
+        "_update_state": Person._update_state,
+        "_parse_source_state": Person._parse_source_state,
+    }
+
+    compatible = {}
+    for func_name, func_ref in monitored_functions.items():
+        current_hash = _get_function_hash(func_ref)
+        if current_hash in REFERENCE_HASHES[func_name].values():
+            compatible[func_name] = True
+        else:
+            compatible[func_name] = False
+
+    # Tutte compatibili → applica patch completa
+    if all(compatible.values()):
+        _patch_update_state()
+        _patch_parse_source_state()
+        _LOGGER.debug("Patch Person applicata/e correttamente.")
+
+    # Nessuna compatibile → blocca patching, avvisa solo se il core non è già stato aggiornato con le modifiche necessarie
+    elif not any(compatible.values()):
+        if not CORE_ALREADY_UPDATED:
+            _LOGGER.warning("Versione del componente Person del core non compatibile, patch NON applicata. Attendere aggiornamento integrazione.")
+
+    # Caso misto → applicazione parziale
+    else:
+        if compatible["_update_state"]:
+            _patch_update_state()
+            _LOGGER.debug("Patch Person applicata parzialmente. L'attributo GPS precision non verrà nascosto per il tracker")
