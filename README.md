@@ -13,7 +13,8 @@
 | **Domain** | `wifi_sensor_tracker` |
 | **Type** | Custom Integration |
 | **Author** | [5a2v0](https://github.com/5a2v0) |
-| **Tested HA Version** | 2025.9 or newer |
+| **Minimum HA Version** | 2020.12.0 |
+| **Tested HA Version** | 2025.9.x or newer |
 | **Config method** | Config Flow (UI only, no YAML) |
 | **Current Version** | 2.2.1 |
 
