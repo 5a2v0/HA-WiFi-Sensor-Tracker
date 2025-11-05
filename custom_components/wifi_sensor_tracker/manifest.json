@@ -4,7 +4,6 @@
   "codeowners": ["@5a2v0"],
   "config_flow": true,
   "documentation": "https://github.com/5a2v0/HA-WiFi-Sensor-Tracker",
-  "homeassistant": "2020.12.0",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/5a2v0/HA-WiFi-Sensor-Tracker/issues",
   "requirements": [],
