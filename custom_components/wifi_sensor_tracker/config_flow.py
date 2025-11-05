@@ -297,7 +297,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
         if user_input is not None:
-            # 1. Valida e calcola differenze 
+            # Valida e calcola differenze 
             new_ssid = (user_input.get("home_wifi_ssid") or "").strip()
             new_sensors = set(user_input.get("sensors", []))
             new_consider_home = user_input.get("consider_home", 180)
@@ -322,7 +322,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 ssid_changed = new_ssid != old_ssid
                 consider_home_changed = new_consider_home != old_consider_home
 
-                # 3. Rimuove le entità dei tracker legati ad eventuali sensori eliminati
+                # Rimuove le entità dei tracker legati ad eventuali sensori eliminati
                 if sensors_to_remove:
                     entity_registry = er.async_get(self.hass)
                     for sensor in sensors_to_remove:
@@ -331,7 +331,6 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                         if entry:
                             entity_registry.async_remove(entry.entity_id)
 
-                # 4 Salva i dati nel config entry
                 # Conserva temporaneamente i dati in memoria
                 self._base_data = {
                     "home_wifi_ssid": new_ssid,
@@ -340,8 +339,6 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 }
 
                 # Verifica se l'utente ha scelto di gestire le reti extra
-                #if manage_zones:
-                #    return await self.async_step_edit_zones()
                 if action == "manage":
                     self._mode = "manage"
                     return await self.async_step_edit_zones()
@@ -350,7 +347,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                     self._current_index = len(self._zones_to_edit)
                     return await self.async_step_edit_zones()
 
-                # Se invece non deve gestire zone, salva la configurazione attuale
+                # Se invece non deve gestire zone, salva la configurazione attuale nel config entry
                 data = dict(self._base_data)
                 data["extra_zones"] = list(self._zones_to_edit)
                 self.hass.config_entries.async_update_entry(self._entry, data=data)
@@ -385,7 +382,7 @@ class WifiSensorTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 await async_soft_reload_entry(self.hass, self._entry)
                 return self.async_create_entry(title="", data={})
             else:
-                #Modalità aggiunta, mostriamo form vuoto
+                # Modalità aggiunta, mostriamo form vuoto
                 schema = vol.Schema(
                     {
                         vol.Optional("ssid_zone", description={"translation_key": "ssid_zone"}, default=ssid_zone_default): str,
