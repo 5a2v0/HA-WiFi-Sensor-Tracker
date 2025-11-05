@@ -7,6 +7,9 @@ major_versions = range(2020, 2026)
 minor_versions = range(0, 13)
 patch_versions = range(0, 5)
 
+target_function = "_parse_source_state"
+# target_function = "_update_state" 
+
 unique_hashes = set()
 
 def _get_function_source(code: str, class_name: str, func_name: str) -> str:
@@ -43,7 +46,8 @@ for major in major_versions:
             except Exception:
                 continue
 
-            func_code = _get_function_source(code, "Person", "_update_state")
+            func_code = _get_function_source(code, "Person", target_function)
+
             if func_code:
                 func_hash = compute_hash(func_code)
                 if func_hash not in unique_hashes:
