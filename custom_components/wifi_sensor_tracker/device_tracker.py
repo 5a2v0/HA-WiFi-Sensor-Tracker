@@ -44,7 +44,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
         self._attr_latitude = None
         self._attr_longitude = None
         # Inizializziamo gps_accuracy a None per evitare che il core mostri 0
-        self._attr_gps_accuracy = None
+        #self._attr_gps_accuracy = None
         self._ssid_zone_map = ssid_zone_map or {}
         self._current_zone = "not_home"
         self._consider_home = timedelta(seconds=consider_home)
@@ -67,7 +67,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
             attrs["latitude"] = self._attr_latitude
             attrs["longitude"] = self._attr_longitude
         # Forzo l'attributo None che diventerà null in Json e non verrà mostrato nella UI
-        attrs["gps_accuracy"] = self._attr_gps_accuracy
+        #attrs["gps_accuracy"] = self._attr_gps_accuracy
         return attrs
 
     def _schedule_exit(self):
@@ -164,3 +164,4 @@ class WifiSensorTrackerEntity(TrackerEntity):
         if self._exit_timer:
             self._exit_timer()
             self._exit_timer = None
+
