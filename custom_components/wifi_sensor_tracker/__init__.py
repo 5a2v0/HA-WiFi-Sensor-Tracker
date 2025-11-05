@@ -48,7 +48,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
         else:
             _LOGGER.warning("È già presente un config entry per %s, la configurazione YAML è ignorata.", DOMAIN)
 
-    # WORKAROUND IN ATTESA DELLA MODIFICA DEL CORE
+    # Patch del core se necessaria, in attesa di eventuale accettazione della PR
     try:
         from .patch_person import apply_person_patch
         apply_person_patch()
