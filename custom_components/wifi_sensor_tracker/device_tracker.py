@@ -7,7 +7,6 @@ from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_state_change_event, async_call_later
 from homeassistant.util import dt as dt_util
-
 from homeassistant.const import ATTR_FRIENDLY_NAME
 
 _LOGGER = logging.getLogger(__package__)
@@ -134,7 +133,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
                     if zone_state:
                         # friendly name (es. "Lavoro", "Scuola", ecc.)
                         self._current_zone = zone_state.attributes.get(
-                            "friendly_name",
+                            ATTR_FRIENDLY_NAME, #"friendly_name",
                             zone_entity_id.partition("zone.")[2]
                         )
                         # Aggiorniamo latitude e longitude se la zona è trovata
@@ -164,4 +163,3 @@ class WifiSensorTrackerEntity(TrackerEntity):
         if self._exit_timer:
             self._exit_timer()
             self._exit_timer = None
-
