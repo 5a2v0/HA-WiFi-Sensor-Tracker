@@ -3,26 +3,23 @@ Questa cartella contiene utility per supportare la gestione delle patch della cl
 ### File presenti
 
 1. **print_code_for_diff.py**  
-   - Estrae il codice della funzione `_update_state` dalla versione corrente di HA.  
+   - Estrae il codice delle funzioni `_update_state` e `_parse_source_state` dalla versione corrente di HA.  
    - Genera una versione "patchata" con la logica aggiuntiva (es. `latest_non_gps_zone`).  
-   - Calcola l'hash SHA1 della funzione originale.  
+   - Calcola l'hash SHA1 delle funzioni originali.  
    - Utile per confrontare rapidamente versioni nuove e vecchie.
 
 2. **generate_old_version_hashes.py**  
-   - Genera un elenco di hash univoci delle vecchie versioni della funzione `_update_state`.  
+   - Genera un elenco di hash univoci delle vecchie versioni delle funzioni `_update_state` e `_parse_source_state`.  
    - Serve solo una tantum per popolare l'elenco degli hash conosciuti.
 
-3. **dynamic_person_patch.py**  
-   - Contiene la logica per generare dinamicamente la funzione `_update_state` patchata.  
-
-4. **old_person_patch.py**  
-   - Contiene la logica vecchia che staticamente patchava la funzione `_update_state` ma solo su alcune (poche) versioni di Ha.  
+3. **old_person_patch.py**  
+   - Contiene la logica vecchia che staticamente patchava solo la funzione `_update_state` ma solo su alcune (poche) versioni di Ha.  
 
 ### Promemoria operativo
 
-Quando esce una **nuova versione del core HA**:
+Quando esce una **nuova versione del core HA con modifiche anche a una sola delle due funzioni**:
 
-1. Estrarre la funzione `_update_state` aggiornata e confrontarla con la versione "VECCHIA" già testata.  
+1. Estrarre la funzione aggiornata e confrontarla con la versione "VECCHIA" già testata.  
 
 2. Controllare attentamente:  
    - eventuali modifiche sostanziali nella struttura della funzione;  
@@ -30,5 +27,6 @@ Quando esce una **nuova versione del core HA**:
    - correttezza della patch (nessun inserimento/posizionamento errato di codice).  
 
 3. Se la funzione patchata è compatibile:  
-   - aggiungere il nuovo hash al file `person_patch.py` presente nella cartella che contiene i files ufficiali dell'integrazione,  
-   - (opzionale) aggiungere l'hash anche ai file presenti in questa cartella
+   - aggiungere il nuovo hash al file `person_patch.py` presente nella cartella che contiene i files ufficiali dell'integrazione
+
+4. Se le versioni del core risultassero già patchate (PR accettata) impostare a True la costante definita nel file patch_person.py e NON aggiungere gli hash nuovi delle funzioni
