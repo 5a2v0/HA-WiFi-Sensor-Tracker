@@ -36,7 +36,7 @@ def _get_function_source(code: str, class_name: str, func_name: str) -> str:
     return ""
 
 
-def _patch_update_state(func_code: str) -> str:
+def _modify_update_state(func_code: str) -> str:
     """Aggiunge la variabile extra e il piccolo elif in modo robusto."""
     lines = func_code.splitlines()
 
@@ -139,6 +139,38 @@ def _patch_update_state(func_code: str) -> str:
     return "\n".join(new_lines)
 
 
+def _modify_parse_source_state(func_code: str) -> str:
+    # Aggiunge il blocco if che nasconde l'attributo GPS_ACCURACY
+    lines = func_code.splitlines()
+
+    # Check se il blocco if SourceType.GPS esiste già
+    if any("if state.attributes.get(ATTR_SOURCE_TYPE) == SourceType.GPS:" in line for line in lines):
+        return func_code  # Patch già presente, nulla da fare
+
+    if_added = False
+
+    for i, line in enumerate(lines):
+        if "_gps_accuracy" in line:
+            indent = re.match(r"(\s*)", lines[i]).group(1)
+            new_lines = [
+                f"{indent}if state.attributes.get(ATTR_SOURCE_TYPE) == SourceType.GPS:",
+                f"{indent}    self._gps_accuracy = state.attributes.get(ATTR_GPS_ACCURACY)",
+                f"{indent}else:",
+                f"{indent}    self._gps_accuracy = None",
+            ]
+
+            # inseriamo il blocco modificato al posto della riga originale
+            patched_lines = lines[:i] + new_lines + lines[i+1:]
+
+            if_added = True
+
+    # Controlli di coerenza finale
+    if not if_added:
+        raise RuntimeError("Patch Person: blocco if _gps_accuracy non aggiunto — struttura inattesa.")
+        
+    return "\n".join(patched_lines)
+
+
 def _compute_hash(func_code: str) -> str:
     return hashlib.sha1(func_code.encode("utf-8")).hexdigest()
 
@@ -147,27 +179,50 @@ print("Scarico file:", url)
 with urllib.request.urlopen(url) as resp:
     code = resp.read().decode("utf-8")
 
-func_code = _get_function_source(code, "Person", "_update_state")
+update_state_code = _get_function_source(code, "Person", "_update_state")
+parse_source_state_code = _get_function_source(code, "Person", "_parse_source_state")
+
+patched_update_state_code = _modify_update_state(update_state_code)
+patched_parse_source_state_code = _modify_parse_source_state(parse_source_state_code)
+
+hash_update_state = _compute_hash(update_state_code)
+hash_parse_source_state = _compute_hash(parse_source_state_code)
+
+formatted_output = f"""
+REFERENCE_HASHES = {{
+    "_update_state": {{
+        "{tag}+": "{hash_update_state}",
+    }},
+    "_parse_source_state": {{
+        "{tag}+": "{hash_parse_source_state}",
+    }}
+}}
+"""
 
 print("\n--- CODICE ORIGINALE ESTRATTO ---")
-print(func_code)
+print(update_state_code)
+print("\n\n")
+print(parse_source_state_code)
 print("-----------------------\n")
-
-patched_code = _patch_update_state(func_code)
 
 print("\n--- CODICE CON PATCH DINAMICA ---")
-print(patched_code)
+print(patched_update_state_code)
+print("\n\n")
+print(patched_parse_source_state_code)
 print("-----------------------\n")
 
-func_hash = _compute_hash(func_code)
-print("NUOVO HASH DEL CODICE ORIGINALE:\n")
-print(f"    \"{tag}+\": \"{func_hash}\",")
+print("\nHASH DELLE FUNZIONI DEL CODICE DEL CORE:\n")
+print(formatted_output.strip())
 
 with open(".github/utility/original_code.txt", "w", encoding="utf-8") as f:
-    f.write(func_code)
+    f.write(update_state_code)
+    f.write("\n\n")
+    f.write(parse_source_state_code)
 
 with open(".github/utility/patched_code.txt", "w", encoding="utf-8") as f:
-    f.write(patched_code)
+    f.write(patched_update_state_code)
+    f.write("\n\n")
+    f.write(patched_parse_source_state_code)
 
 with open(".github/utility/hash.txt", "w", encoding="utf-8") as f:
-    f.write(f'    "{tag}+": "{func_hash}",\n')
+    f.write(formatted_output.strip() + "\n")
