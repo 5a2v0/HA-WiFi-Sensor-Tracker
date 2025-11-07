@@ -31,14 +31,7 @@
                 coordinates = latest_non_gps_home
         elif latest_non_gps_zone:
             latest = latest_non_gps_zone
-            if (
-                latest_non_gps_zone.attributes.get(ATTR_LATITUDE) is None
-                and latest_non_gps_zone.attributes.get(ATTR_LONGITUDE) is None
-                and (zone := self.hass.states.get(f"zone.{latest_non_gps_zone.state.lower().replace(' ', '_')}"))
-            ):
-                coordinates = zone
-            else:
-                coordinates = latest_non_gps_zone
+            coordinates = latest_non_gps_zone
         elif latest_gps:
             latest = latest_gps
             coordinates = latest_gps
