@@ -1,4 +1,4 @@
-# Patch per modificare la logica di aggiornamento di Person in Home Assistant.
+''' Patch per modificare la logica di aggiornamento di Person in Home Assistant.'''
 import logging
 import inspect
 import hashlib
@@ -29,6 +29,9 @@ from homeassistant.components.zone import ENTITY_ID_HOME
 
 # Costante da impostare a True nel caso in cui venisse accettata la PR al core di Home Assistant ed uscisse quindi una nuova versione che non necessita le patch
 CORE_ALREADY_UPDATED = False
+
+# Costante da impostare a True se venisse accettata solo parzialmente la PR al core volessi forzare il nascondere l'attributo gps accuracy dal tracker
+WORKAROUND_HIDE_GPS_ACCURACY = False
 
 # HASH delle versioni che necessitano di patch calcolati a partire dal decoratore @callback delle funzioni comprensivo degli spazi di indentazione e riga finale vuota
 REFERENCE_HASHES = {
@@ -70,7 +73,7 @@ def _modify_update_state(func_code: str) -> str:
     elif_state_added = False
     elif_zone_added = False
     add_coordinates = False
-    elif_zone_coordinates = False
+                                 
 
     # Check se le modifiche esistono già
     for line in lines:
@@ -80,20 +83,20 @@ def _modify_update_state(func_code: str) -> str:
             elif_state_added = True
         if "elif latest_non_gps_zone:" in line:
             elif_zone_added = True
-        if "latest_non_gps_zone.attributes.get(ATTR_LATITUDE) is None" in line:
-            elif_zone_coordinates = True
+
+                                        
         if "coordinates =" in line:
             add_coordinates = True
 
-    if variable_added and elif_state_added and elif_zone_added and elif_zone_coordinates:
+    if variable_added and elif_state_added and elif_zone_added:
         return func_code  # Patch già presente, nulla da fare
 
     new_lines = []
-    skip_next = False
+                     
     for i, line in enumerate(lines):
-        if skip_next:
-            skip_next = False
-            continue
+                     
+                             
+                    
         new_lines.append(line)
 
         # Inseriamo la nuova variabile subito dopo la dichiarazioni delle variabili note
@@ -114,7 +117,7 @@ def _modify_update_state(func_code: str) -> str:
             elif_state_added = True
 
         #Inseriamo l'altro blocco elif subito prima della riga elif latest_gps:
-        if not elif_zone_added and "elif latest_gps:" in line:
+        if "elif latest_gps:" in line:
             # Trova indentazione coerente con il blocco if/elif
             indent = re.match(r"(\s*)", line).group(1)
             # Aggiungiamo subito prima il nostro blocco
@@ -122,44 +125,44 @@ def _modify_update_state(func_code: str) -> str:
             new_lines.insert(insert_pos, f"{indent}elif latest_non_gps_zone:")
             new_lines.insert(insert_pos + 1, f"{indent}    latest = latest_non_gps_zone")
             if add_coordinates:
-                new_lines.insert(insert_pos + 2, f"{indent}    if (")
-                new_lines.insert(insert_pos + 3, f"{indent}        latest_non_gps_zone.attributes.get(ATTR_LATITUDE) is None")
-                new_lines.insert(insert_pos + 4, f"{indent}        and latest_non_gps_zone.attributes.get(ATTR_LONGITUDE) is None")
-                new_lines.insert(
-                    insert_pos + 5,
-                    indent + '        and (zone := self.hass.states.get(f"zone.{latest_non_gps_zone.state.lower().replace(\' \', \'_\')}"))'
-                )
-                new_lines.insert(insert_pos + 6, f"{indent}    ):")
-                new_lines.insert(insert_pos + 7, f"{indent}        coordinates = zone")
-                new_lines.insert(insert_pos + 8, f"{indent}    else:")
-                new_lines.insert(insert_pos + 9, f"{indent}        coordinates = latest_non_gps_zone")
+                new_lines.insert(insert_pos + 2, f"{indent}    coordinates = latest_non_gps_zone")
+                                                                                                                              
+                                                                                                                                   
+                                 
+                                   
+                                                                                                                                            
+                 
+                                                                   
+                                                                                       
+                                                                      
+                                                                                                      
             elif_zone_added = True
-            elif_zone_coordinates = True
+                                        
 
-        #Se invece l'ultimo blocco elif esiste ma non ha il check sulle coordinate
-        elif elif_zone_added and add_coordinates and not elif_zone_coordinates and "latest = latest_non_gps_zone" in line:
-            indent = re.match(r"(\s*)", line).group(1)
-            # Controlla se la prossima riga è quella da sostituire
-            if i + 1 < len(lines) and "coordinates = latest_non_gps_zone" in lines[i + 1]:
-                # Inserisci il blocco completo invece della riga semplice
-                new_lines.append(f"{indent}if (")
-                new_lines.append(f"{indent}    latest_non_gps_zone.attributes.get(ATTR_LATITUDE) is None")
-                new_lines.append(f"{indent}    and latest_non_gps_zone.attributes.get(ATTR_LONGITUDE) is None")
-                new_lines.append(indent + f'    and (zone := self.hass.states.get(f"zone.{latest_non_gps_zone.state.lower().replace(" ", "_")}"))')
-                new_lines.append(f"{indent}):")
-                new_lines.append(f"{indent}    coordinates = zone")
-                new_lines.append(f"{indent}else:")
-                new_lines.append(f"{indent}    coordinates = latest_non_gps_zone")
-                elif_zone_coordinates = True
-                skip_next = True
+                                                                                  
+                                                                                                                          
+                                                      
+                                                                   
+                                                                                          
+                                                                         
+                                                 
+                                                                                                          
+                                                                                                               
+                                                                                                                                                   
+                                               
+                                                                   
+                                                  
+                                                                                  
+                                            
+                                
 
     # Controlli di coerenza finale
     if not variable_added:
         raise RuntimeError("Patch Person: variabile 'latest_non_gps_zone' non aggiunta — struttura inattesa.")
     if not elif_state_added:
         raise RuntimeError("Patch Person: blocco 'elif state.state not in (...)' non aggiunto — struttura inattesa.")
-    if not elif_zone_added or not elif_zone_coordinates:
-        raise RuntimeError("Patch Person: blocco 'elif latest_non_gps_zone' non aggiunto/modificato — struttura inattesa.")
+    if not elif_zone_added:
+        raise RuntimeError("Patch Person: blocco 'elif latest_non_gps_zone' non aggiunto — struttura inattesa.")
 
     return "\n".join(new_lines)
 
@@ -266,4 +269,6 @@ def apply_person_patch():
     else:
         if compatible["_update_state"]:
             _patch_update_state()
-            _LOGGER.debug("Patch Person applicata parzialmente. L'attributo GPS precision non verrà nascosto per il tracker")
+            global WORKAROUND_HIDE_GPS_ACCURACY
+            WORKAROUND_HIDE_GPS_ACCURACY = True
+            _LOGGER.debug("Patch Person applicata parzialmente. L'attributo GPS precision verrà nascosto tramite impostazione dell'attributo a None")
