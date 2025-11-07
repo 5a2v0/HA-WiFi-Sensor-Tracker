@@ -42,7 +42,14 @@ async def async_setup(hass: HomeAssistant, config: dict):
         # Interrompe il setup se la versione di Home Assistant è troppo vecchia
         return False
 
-    """YAML setup (legacy)."""
+    # Patch del componente Person per versioni del core in cui manca la priorità dei tracker stationary rispetto a quelli gps
+    try:
+        from .patch_person import apply_person_patch
+        apply_person_patch()
+    except Exception as e:
+        _LOGGER.warning("Patch Person: errore nell'importazione o applicazione: %s", e)
+
+    # YAML setup (legacy)
     if DOMAIN in config:
         # Se non esiste un entry lo creo e importo i dati esistenti
         if not any(entry.domain == DOMAIN for entry in hass.config_entries.async_entries(DOMAIN)):
@@ -62,12 +69,12 @@ async def async_setup(hass: HomeAssistant, config: dict):
         else:
             _LOGGER.warning("È già presente un config entry per %s, la configurazione YAML è ignorata.", DOMAIN)
 
-    # Patch del componente Person per versioni del core in cui manca la priorità dei tracker stationary rispetto a quelli gps
-    try:
-        from .patch_person import apply_person_patch
-        apply_person_patch()
-    except Exception as e:
-        _LOGGER.warning("Patch Person: errore nell'importazione o applicazione: %s", e)
+                                                                                                                              
+        
+                                                    
+                            
+                          
+                                                                                       
 
     return True
 
@@ -75,6 +82,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Configuro l'integrazione con i dati del config entry."""
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    
     # Gestisco controlli all'avvio dell'integrazione sia in caso di reload manuale dell'integrazione sia all'avvio di Home Assistant
     if hass.is_running:
         hass.async_create_task(_initial_checks_and_update_request(hass, entry))
@@ -89,7 +97,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigEntry):
     """Controlla i sensori, le zone e gli ssid configurate. Dopo 30s invia request_location_update ai dispositivi con app companion registrata"""
 
-    # === CONTROLLO SENSORI ===
+    # Controllo sensori
     all_sensors = [e for e in hass.states.async_entity_ids("sensor")]
     available_sensors = {
         s for s in all_sensors if s.endswith("_wifi_connection") or s.endswith("_ssid") or s.endswith("_wi_fi_connection")
@@ -111,7 +119,7 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
             ", ".join(sorted(new_sensors)),
         )
 
-    # === CONTROLLO ZONE CONFIGURATE ===
+    # Controllo zone configurate
     extra_zones = entry.data.get("extra_zones", [])
     if extra_zones:
 
@@ -149,8 +157,7 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
                 ", ".join(sorted(missing_zones)),
             )
 
-
-    # === CONTROLLO SSID CONFIGURATI ===
+    # Controllo SSID configurati
     extra_ssid = set()
     duplicates = []
     for z in entry.data.get("extra_zones", []):
@@ -167,7 +174,7 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
             ", ".join(sorted(set(duplicates))),
         )
 
-    # === INVIO request_location_update AI DISPOSITIVI CON APP COMPANION REGISTRATI ===
+    # Invio request_location_update ai disppositivi registrati con app companion
     await asyncio.sleep(30)
     _LOGGER.debug("Avvio controllo sensori/zone ed invio request_location_update...")
     
