@@ -1,4 +1,4 @@
-''' Patch per modificare la logica di aggiornamento di Person in Home Assistant.'''
+# Patch per modificare la logica di aggiornamento di Person in Home Assistant.
 import logging
 import inspect
 import hashlib
@@ -29,9 +29,9 @@ from homeassistant.components.zone import ENTITY_ID_HOME
 
 # Costante da impostare a True nel caso in cui venisse accettata la PR al core di Home Assistant ed uscisse quindi una nuova versione che non necessita le patch
 CORE_ALREADY_UPDATED = False
-
 # Costante da impostare a True se venisse accettata solo parzialmente la PR al core volessi forzare il nascondere l'attributo gps accuracy dal tracker
 WORKAROUND_HIDE_GPS_ACCURACY = False
+
 
 # HASH delle versioni che necessitano di patch calcolati a partire dal decoratore @callback delle funzioni comprensivo degli spazi di indentazione e riga finale vuota
 REFERENCE_HASHES = {
@@ -73,7 +73,7 @@ def _modify_update_state(func_code: str) -> str:
     elif_state_added = False
     elif_zone_added = False
     add_coordinates = False
-                                 
+    elif_zone_coordinates = False
 
     # Check se le modifiche esistono già
     for line in lines:
@@ -84,7 +84,6 @@ def _modify_update_state(func_code: str) -> str:
         if "elif latest_non_gps_zone:" in line:
             elif_zone_added = True
 
-                                        
         if "coordinates =" in line:
             add_coordinates = True
 
@@ -92,11 +91,7 @@ def _modify_update_state(func_code: str) -> str:
         return func_code  # Patch già presente, nulla da fare
 
     new_lines = []
-                     
     for i, line in enumerate(lines):
-                     
-                             
-                    
         new_lines.append(line)
 
         # Inseriamo la nuova variabile subito dopo la dichiarazioni delle variabili note
@@ -126,35 +121,7 @@ def _modify_update_state(func_code: str) -> str:
             new_lines.insert(insert_pos + 1, f"{indent}    latest = latest_non_gps_zone")
             if add_coordinates:
                 new_lines.insert(insert_pos + 2, f"{indent}    coordinates = latest_non_gps_zone")
-                                                                                                                              
-                                                                                                                                   
-                                 
-                                   
-                                                                                                                                            
-                 
-                                                                   
-                                                                                       
-                                                                      
-                                                                                                      
             elif_zone_added = True
-                                        
-
-                                                                                  
-                                                                                                                          
-                                                      
-                                                                   
-                                                                                          
-                                                                         
-                                                 
-                                                                                                          
-                                                                                                               
-                                                                                                                                                   
-                                               
-                                                                   
-                                                  
-                                                                                  
-                                            
-                                
 
     # Controlli di coerenza finale
     if not variable_added:
@@ -271,4 +238,4 @@ def apply_person_patch():
             _patch_update_state()
             global WORKAROUND_HIDE_GPS_ACCURACY
             WORKAROUND_HIDE_GPS_ACCURACY = True
-            _LOGGER.debug("Patch Person applicata parzialmente. L'attributo GPS precision verrà nascosto tramite impostazione dell'attributo a None")
+            _LOGGER.debug("Patch Person applicata parzialmente. L'attributo GPS precision verrà nascosto tramite indicazione del campo a None")
