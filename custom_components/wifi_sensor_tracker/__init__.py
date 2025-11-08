@@ -69,13 +69,6 @@ async def async_setup(hass: HomeAssistant, config: dict):
         else:
             _LOGGER.warning("È già presente un config entry per %s, la configurazione YAML è ignorata.", DOMAIN)
 
-                                                                                                                              
-        
-                                                    
-                            
-                          
-                                                                                       
-
     return True
 
 
@@ -97,7 +90,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigEntry):
     """Controlla i sensori, le zone e gli ssid configurate. Dopo 30s invia request_location_update ai dispositivi con app companion registrata"""
 
-    # Controllo sensori
+    # === CONTROLLO SENSORI ===
     all_sensors = [e for e in hass.states.async_entity_ids("sensor")]
     available_sensors = {
         s for s in all_sensors if s.endswith("_wifi_connection") or s.endswith("_ssid") or s.endswith("_wi_fi_connection")
@@ -119,7 +112,7 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
             ", ".join(sorted(new_sensors)),
         )
 
-    # Controllo zone configurate
+    # === CONTROLLO ZONE CONFIGURATE ===
     extra_zones = entry.data.get("extra_zones", [])
     if extra_zones:
 
@@ -157,7 +150,8 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
                 ", ".join(sorted(missing_zones)),
             )
 
-    # Controllo SSID configurati
+
+    # === CONTROLLO SSID CONFIGURATI ===
     extra_ssid = set()
     duplicates = []
     for z in entry.data.get("extra_zones", []):
@@ -174,7 +168,7 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
             ", ".join(sorted(set(duplicates))),
         )
 
-    # Invio request_location_update ai disppositivi registrati con app companion
+    # === INVIO request_location_update AI DISPOSITIVI CON APP COMPANION REGISTRATI ===
     await asyncio.sleep(30)
     _LOGGER.debug("Avvio controllo sensori/zone ed invio request_location_update...")
     
