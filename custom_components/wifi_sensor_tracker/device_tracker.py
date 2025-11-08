@@ -1,5 +1,4 @@
-
-"""Device tracker per Wi-Fi Sensor Tracker (multi-zona)."""
+"""Device tracker per Wi-Fi Sensor Tracker (multi-zona, con consider_home)."""
 import logging
 from datetime import timedelta
 from homeassistant.components.device_tracker import SourceType
@@ -138,13 +137,13 @@ class WifiSensorTrackerEntity(TrackerEntity):
                         # friendly name (es. "Lavoro", "Scuola", ecc.)
                         self._current_zone = zone_state.attributes.get(
                             ATTR_FRIENDLY_NAME,
-                            zone_entity_id.partition("zone.")[2] # fallback --> se la zona non avesse un friendly name lo creo
+                            zone_entity_id.partition("zone.")[2] # fallback --> se la zona non avesse un friendly name lo creiamo
                         )
                         # Aggiorniamo latitude e longitude se la zona è trovata
                         self._attr_latitude = zone_state.attributes.get("latitude")
                         self._attr_longitude = zone_state.attributes.get("longitude")
                     else:
-                        # fallback: zona non esistente (esempio: zona cancellata ma rimasta nelle opzioni dell'integrazione). Tolgo "zone." e creo un friendly name
+                        # fallback: zona non esistente (esempio: zona cancellata ma rimasta nelle opzioni dell'integrazione) togli "zone." e crea un friendly name
                         self._current_zone = zone_entity_id.partition("zone.")[2].capitalize() or zone_entity_id
                         _LOGGER.warning("Zona %s non trovata in HA, usando fallback '%s'", zone_entity_id, self._current_zone)
                         # La zona non esiste, azzeriamo latitude e longitude
@@ -158,7 +157,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
                 self._exit_timer()
                 self._exit_timer = None
 
-        # Se non risultiamo in nessuna zona esistente programmiamo il not_home dopo consider_home
+        # Se invece non risultiamo in nessuna zona esistente
         else:
             self._schedule_exit()
 
