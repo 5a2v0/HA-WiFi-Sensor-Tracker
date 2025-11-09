@@ -84,6 +84,9 @@ class WifiSensorTrackerEntity(TrackerEntity):
 
         async def _set_not_home(_now):
             self._attr_is_connected = False
+            self._attr_zone_entity_id = None
+            self._attr_latitude = None
+            self._attr_longitude = None
             self._exit_timer = None
             self.async_write_ha_state()
             _LOGGER.debug("%s segnato not_home dopo consider_home", self._attr_name)
@@ -176,4 +179,5 @@ class WifiSensorTrackerEntity(TrackerEntity):
         if self._exit_timer:
             self._exit_timer()
             self._exit_timer = None
+
 
