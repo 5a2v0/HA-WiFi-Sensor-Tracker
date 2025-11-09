@@ -83,6 +83,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
             return
 
         async def _set_not_home(_now):
+            self._current_zone = STATE_NOT_HOME
             self._attr_is_connected = False
             self._attr_zone_entity_id = None
             self._attr_latitude = None
@@ -179,5 +180,6 @@ class WifiSensorTrackerEntity(TrackerEntity):
         if self._exit_timer:
             self._exit_timer()
             self._exit_timer = None
+
 
 
