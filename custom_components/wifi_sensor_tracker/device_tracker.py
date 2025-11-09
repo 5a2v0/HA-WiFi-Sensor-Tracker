@@ -41,6 +41,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
         self._attr_unique_id = sensor.replace("sensor.", "").replace(".", "_").replace("_connection", "")
         self._attr_should_poll = False
         self._attr_is_connected = False
+        self._attr_zone_entity_id = None
         self._attr_latitude = None
         self._attr_longitude = None
         # Se la patch del core non è stata applicata inizializziamo gps_accuracy a None per evitare che il core mostri questo attributo con valore 0
@@ -64,6 +65,8 @@ class WifiSensorTrackerEntity(TrackerEntity):
     def extra_state_attributes(self):
         """Attributi personalizzati per il tracker Wi-Fi."""
         attrs = {}
+        if self._attr_zone_entity_id is not None:
+            attrs["zone_entity_id"] = self._attr_zone_entity_id
         if self._attr_latitude is not None and self._attr_longitude is not None:
             attrs["latitude"] = self._attr_latitude
             attrs["longitude"] = self._attr_longitude
@@ -120,6 +123,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
             self._attr_is_connected = True
             if state.state == self._ssid_home:
                 self._current_zone = STATE_HOME
+                self._attr_zone_entity_id = ENTITY_ID_HOME
                 # Azzeriamo latitude e longitude quando siamo "home", il core li prenderà automaticamente dalla zona
                 self._attr_latitude = None
                 self._attr_longitude = None
@@ -128,6 +132,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
                 # se la zona extra è "zone.home", trattala come home
                 if zone_entity_id == ENTITY_ID_HOME:
                     self._current_zone = STATE_HOME
+                    self._attr_zone_entity_id = ENTITY_ID_HOME
                     # Azzeriamo latitude e longitude quando siamo "home", il core li prenderà automaticamente dalla zona
                     self._attr_latitude = None
                     self._attr_longitude = None
@@ -139,6 +144,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
                             ATTR_FRIENDLY_NAME,
                             zone_entity_id.partition("zone.")[2] # fallback --> se la zona non avesse un friendly name lo creiamo
                         )
+                        self._attr_zone_entity_id = zone_entity_id
                         # Aggiorniamo latitude e longitude se la zona è trovata
                         self._attr_latitude = zone_state.attributes.get("latitude")
                         self._attr_longitude = zone_state.attributes.get("longitude")
@@ -146,6 +152,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
                         # fallback: zona non esistente (esempio: zona cancellata ma rimasta nelle opzioni dell'integrazione) togli "zone." e crea un friendly name
                         self._current_zone = zone_entity_id.partition("zone.")[2].capitalize() or zone_entity_id
                         _LOGGER.warning("Zona %s non trovata in HA, usando fallback '%s'", zone_entity_id, self._current_zone)
+                        self._attr_zone_entity_id = None
                         # La zona non esiste, azzeriamo latitude e longitude
                         self._attr_latitude = None
                         self._attr_longitude = None
@@ -169,3 +176,4 @@ class WifiSensorTrackerEntity(TrackerEntity):
         if self._exit_timer:
             self._exit_timer()
             self._exit_timer = None
+
