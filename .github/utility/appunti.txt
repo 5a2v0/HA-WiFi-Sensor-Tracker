@@ -55,3 +55,21 @@ def _parse_source_state(self, state: State, coordinates: State) -> None:
         self._gps_accuracy = state.attributes.get(ATTR_GPS_ACCURACY)
     else:
         self._gps_accuracy = None
+
+
+##### COMPONENTE DEVICE TRACKER , DA MODIFICARE ? ######
+
+
+    @final
+    @property
+    def state_attributes(self) -> dict[str, StateType]:
+        """Return the device state attributes."""
+        attr: dict[str, StateType] = {}
+        attr.update(super().state_attributes)
+
+        if self.latitude is not None and self.longitude is not None:
+            attr[ATTR_LATITUDE] = self.latitude
+            attr[ATTR_LONGITUDE] = self.longitude
+            attr[ATTR_GPS_ACCURACY] = self.location_accuracy
+
+        return attr
