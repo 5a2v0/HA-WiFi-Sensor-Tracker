@@ -36,7 +36,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
     """Home Assistant minimum version check"""
     if parse_version(HA_VERSION) < parse_version(MIN_HA_VERSION):
         _LOGGER.warning(
-            "Wi-Fi Sensor Tracking richiede Home Assistant %s o superiore (versione rilevata: %s).",
+            "Wi-Fi Sensor Tracker requires Home Assistant %s or newer (current version: %s).",
             MIN_HA_VERSION, HA_VERSION,
         )
         # Interrompe il setup se la versione di Home Assistant è troppo vecchia
@@ -60,14 +60,14 @@ async def async_setup(hass: HomeAssistant, config: dict):
                     data=config[DOMAIN],
                 )
             )
-            _LOGGER.warning(
-                 "La configurazione YAML per '%s' è stata importata correttamente. "
-                 "Puoi ora rimuovere o commentare le righe dal tuo configuration.yaml.",
+            _LOGGER.debug(
+                 "YAML configuration for '%s' was successfully imported. "
+                 "You can now remove or comment it out from your configuration.yaml file.",
                  DOMAIN,
             )
         # Altrimenti ricordo solo che la configurazione Yaml è deprecata
         else:
-            _LOGGER.warning("È già presente un config entry per %s, la configurazione YAML è ignorata.", DOMAIN)
+            _LOGGER.debug("A config entry for '%s' already exists, YAML configuration will be ignored.", DOMAIN)
 
     return True
 
@@ -100,15 +100,15 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
 
     if missing_sensors:
         _LOGGER.warning(
-            "Alcuni sensori configurati non sono più disponibili: %s. Puoi aggiornare la configurazione dell'integrazione per eliminarli e di conseguenza eliminare i tracker collegati.",
+            "Some configured sensors are no longer available: %s. You can update the integration configuration to remove them and their related trackers.",
             ", ".join(sorted(missing_sensors)),
         )
 
     new_sensors = available_sensors - configured_sensors
 
     if new_sensors:
-        _LOGGER.warning(
-            "Rilevati nuovi sensori Wi-Fi compatibili non ancora configurati: %s. Puoi aggiornare la configurazione dell'integrazione per includerli.",
+        _LOGGER.info(
+            "New compatible Wi-Fi sensors detected but not yet configured: %s. You can update the integration configuration to include them.",
             ", ".join(sorted(new_sensors)),
         )
 
@@ -131,22 +131,22 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
             if not zone_val.startswith("zone.") and zone_val in friendly_to_entity:
                 z["zone"] = friendly_to_entity[zone_val]
                 updated = True
-                _LOGGER.debug("Migrata zona '%s' → '%s' nell'entry", zone_val, z["zone"])
+                _LOGGER.debug("Zone '%s' migrated to '%s' in the config entry", zone_val, z["zone"])
 
         # Aggiorna entry solo se ci sono stati cambiamenti
         if updated:
             data = dict(entry.data)
             data["extra_zones"] = extra_zones
             hass.config_entries.async_update_entry(entry, data=data)
-            _LOGGER.debug("Migrazione delle zone extra vecchio formato completata.")
+            _LOGGER.debug("Legacy extra zones migration completed.")
 
         # Controllo zone mancanti
         configured_zones = {z["zone"] for z in extra_zones if "zone" in z}
         missing_zones = configured_zones - ha_entity_ids
         if missing_zones:
             _LOGGER.warning(
-                "Alcune zone configurate nell'integrazione non esistono in Home Assistant: %s. "
-                "Crea queste zone sulla mappa altrimenti il tracker della persona non potrà mostrare il nome della zona",
+                "Some configured zones do not exist in Home Assistant: %s. "
+                "Create them in the map to allow the Person entity to display the correct zone.",
                 ", ".join(sorted(missing_zones)),
             )
 
@@ -163,14 +163,13 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
 
     if duplicates:
         _LOGGER.warning(
-            "La configurazione contiene SSID duplicati: %s. "
-            "Questo potrebbe causare comportamenti imprevisti. Apri le impostazioni ed elimina le reti/zone extra con stesso SSID",
+            "Duplicate SSIDs found in configuration: %s. "
+            "This may cause unexpected behavior. Remove duplicate networks or zones from the integration options.",
             ", ".join(sorted(set(duplicates))),
         )
 
     # === INVIO request_location_update AI DISPOSITIVI CON APP COMPANION REGISTRATI ===
     await asyncio.sleep(30)
-    _LOGGER.debug("Avvio controllo sensori/zone ed invio request_location_update...")
     
     notify_services = [
         srv for srv in hass.services.async_services().get("notify", {}).keys()
@@ -178,10 +177,10 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
     ]
 
     if not notify_services:
-        _LOGGER.warning("Nessun dispositivo utilizza l'app companion e condivide quindi sensori compatibili con l'integrazione.")
+        _LOGGER.info("No devices with the Home Assistant Companion App providing compatible sensors were found.")
     else:
         for srv in notify_services:
-            _LOGGER.debug("Invio request_location_update a %s", srv)
+            _LOGGER.debug("Sending location update request to %s", srv)
             try:
                 await hass.services.async_call(
                     "notify",
@@ -190,8 +189,8 @@ async def _initial_checks_and_update_request(hass: HomeAssistant, entry: ConfigE
                     blocking=False,
                 )
             except Exception as e:
-                _LOGGER.error("Errore nell'inviare update a %s: %s", srv, e)
-        _LOGGER.debug("Richieste di update inviate a %d dispositivi", len(notify_services))
+                _LOGGER.error("Failed to send location update request to %s: %s", srv, e)
+        _LOGGER.debug("Sent location update requests to %d devices", len(notify_services))
 
 
 async def async_soft_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
