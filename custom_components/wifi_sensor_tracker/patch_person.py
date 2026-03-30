@@ -61,7 +61,7 @@ def _get_function_hash(func) -> str:
         src = inspect.getsource(func)
         return hashlib.sha1(src.encode("utf-8")).hexdigest()
     except Exception as e:
-        _LOGGER.warning("Impossibile calcolare hash per %s: %s", func, e)
+        _LOGGER.debug("Unable to calculate hash for %s: %s", func, e)
         return ""
 
 
@@ -180,7 +180,7 @@ def _patch_update_state():
         # Recupera l'oggetto funzione dal contesto locale
         patched_func = local_vars.get("_update_state")
         if not patched_func:
-            _LOGGER.warning("Patch Person: exec riuscito, ma _update_state non trovata.")
+            _LOGGER.debug("Person patch: exec succeeded, but _update_state not found.")
             return
         # Sostituisci la funzione originale con quella patchata
         Person._update_state = patched_func
@@ -200,7 +200,7 @@ def _patch_parse_source_state():
         # Recupera l'oggetto funzione dal contesto locale
         patched_func = local_vars.get("_parse_source_state")
         if not patched_func:
-            _LOGGER.warning("Patch Person: exec riuscito, ma _parse_source_state non trovata.")
+            _LOGGER.debug(""Person patch: exec succeeded, but _parse_source_state not found."")
             return
         # Sostituisci la funzione originale con quella patchata
         Person._parse_source_state = patched_func
@@ -225,12 +225,12 @@ def apply_person_patch():
     if all(compatible.values()):
         _patch_update_state()
         _patch_parse_source_state()
-        _LOGGER.debug("Patch Person applicata/e correttamente.")
+        _LOGGER.debug("Person patch applied successfully.")
 
     # Nessuna compatibile → blocca patching, avvisa solo se il core non è già stato aggiornato con le modifiche necessarie
     elif not any(compatible.values()):
         if not CORE_ALREADY_UPDATED:
-            _LOGGER.warning("Versione del componente Person del core non compatibile, patch NON applicata. Attendere aggiornamento integrazione.")
+            _LOGGER.warning("Core Person component version is not compatible; patch NOT applied. Wait for integration update.")
 
     # Caso misto → applicazione parziale
     else:
@@ -238,4 +238,4 @@ def apply_person_patch():
             _patch_update_state()
             global WORKAROUND_HIDE_GPS_ACCURACY
             WORKAROUND_HIDE_GPS_ACCURACY = True
-            _LOGGER.debug("Patch Person applicata parzialmente. L'attributo GPS precision verrà nascosto tramite indicazione del campo a None")
+            _LOGGER.debug("Person patch partially applied. GPS precision attribute will be hidden by setting the field to None.")
