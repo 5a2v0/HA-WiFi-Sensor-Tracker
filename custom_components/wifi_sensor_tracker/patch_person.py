@@ -200,7 +200,7 @@ def _patch_parse_source_state():
         # Recupera l'oggetto funzione dal contesto locale
         patched_func = local_vars.get("_parse_source_state")
         if not patched_func:
-            _LOGGER.debug(""Person patch: exec succeeded, but _parse_source_state not found."")
+            _LOGGER.debug("Person patch: exec succeeded, but _parse_source_state not found.")
             return
         # Sostituisci la funzione originale con quella patchata
         Person._parse_source_state = patched_func
