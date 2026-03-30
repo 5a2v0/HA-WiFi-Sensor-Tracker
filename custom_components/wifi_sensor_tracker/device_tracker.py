@@ -90,7 +90,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
             self._attr_longitude = None
             self._exit_timer = None
             self.async_write_ha_state()
-            _LOGGER.debug("%s segnato not_home dopo consider_home", self._attr_name)
+            _LOGGER.debug("%s marked as not_home after consider_home timeout.", self._attr_name)
 
         # Programma il callback
         self._exit_timer = async_call_later(
@@ -118,7 +118,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
     def _update_from_sensor(self, state):
         """Applica la logica di aggiornamento."""
         if state is None or state.state in (STATE_UNAVAILABLE, None):
-            _LOGGER.debug("Sensore %s non disponibile", self._sensor)
+            _LOGGER.debug("Sensor %s not available.", self._sensor)
             self._attr_is_connected = False
             self.async_write_ha_state()
             return
@@ -155,7 +155,7 @@ class WifiSensorTrackerEntity(TrackerEntity):
                     else:
                         # fallback: zona non esistente (esempio: zona cancellata ma rimasta nelle opzioni dell'integrazione) togli "zone." e crea un friendly name
                         self._current_zone = zone_entity_id.partition("zone.")[2].capitalize() or zone_entity_id
-                        _LOGGER.warning("Zona %s non trovata in HA, usando fallback '%s'", zone_entity_id, self._current_zone)
+                        _LOGGER.debug("Zone %s not found in HA, using fallback '%s'", zone_entity_id, self._current_zone)
                         self._attr_zone_entity_id = None
                         # La zona non esiste, azzeriamo latitude e longitude
                         self._attr_latitude = None
@@ -180,6 +180,3 @@ class WifiSensorTrackerEntity(TrackerEntity):
         if self._exit_timer:
             self._exit_timer()
             self._exit_timer = None
-
-
-
