@@ -21,10 +21,18 @@ from homeassistant.components.person import (
     Person,
     _get_latest,
 )
-from homeassistant.components.device_tracker import (
-    ATTR_SOURCE_TYPE,
-    SourceType,
-)
+try:
+    from homeassistant.components.device_tracker import (
+        ATTR_IN_ZONES,
+        ATTR_SOURCE_TYPE,
+        SourceType,
+    )
+except ImportError:
+    from homeassistant.components.device_tracker import (
+        ATTR_SOURCE_TYPE,
+        SourceType,
+    )
+    ATTR_IN_ZONES = "in_zones"
 from homeassistant.components.zone import ENTITY_ID_HOME
 
 # Costante da impostare a True nel caso in cui venisse accettata la PR al core di Home Assistant ed uscisse quindi una nuova versione che non necessita le patch
@@ -42,12 +50,14 @@ REFERENCE_HASHES = {
         "2024.5.0+":  "bad046c4e122478d12e8b59a2e506cfeb4cb5a63",
         "2025.7.0+":  "7751a7e55d376546784156638cfa4d25b0875c35",
         "2025.9.0+":  "03003c1662579b5895e9741177ab7aebf2631179",
+        "2026.5.0+":  "1ad02d104474322654d5437bd259abefea81ee5d",
     },
     "_parse_source_state": {
         "2020.12.0+": "f04d0b99840793ccb2baabce97b74fbf28d838cc",
         "2024.2.0+":  "12bd43983aa84d5a07dd7b0d379ec8b26b4e8c3b",
         "2024.5.0+":  "49765039bb0f610476f53ea4fbffb4272eff7a9f",
         "2025.9.0+":  "82112bc96ed78526273c9873913947e60ef8a9b0",
+        "2026.5.0+":  "a6816b8b21955adac4e08c81d1ce7522efaa4557",
     }
 }
 
@@ -149,7 +159,7 @@ def _modify_parse_source_state(func_code: str) -> str:
             indent = re.match(r"(\s*)", lines[i]).group(1)
             new_lines = [
                 f"{indent}if state.attributes.get(ATTR_SOURCE_TYPE) == SourceType.GPS:",
-                f"{indent}    self._gps_accuracy = state.attributes.get(ATTR_GPS_ACCURACY)",
+                f"{indent}    self._gps_accuracy = coordinates.attributes.get(ATTR_GPS_ACCURACY)",
                 f"{indent}else:",
                 f"{indent}    self._gps_accuracy = None",
             ]
