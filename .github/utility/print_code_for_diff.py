@@ -119,7 +119,7 @@ def _modify_parse_source_state(func_code: str) -> str:
             indent = re.match(r"(\s*)", lines[i]).group(1)
             new_lines = [
                 f"{indent}if state.attributes.get(ATTR_SOURCE_TYPE) == SourceType.GPS:",
-                f"{indent}    self._gps_accuracy = state.attributes.get(ATTR_GPS_ACCURACY)",
+                f"{indent}    self._gps_accuracy = coordinates.attributes.get(ATTR_GPS_ACCURACY)",
                 f"{indent}else:",
                 f"{indent}    self._gps_accuracy = None",
             ]
