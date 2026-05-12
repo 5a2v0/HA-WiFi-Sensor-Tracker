@@ -52,7 +52,7 @@ def _parse_source_state(self, state: State, coordinates: State) -> None:
     self._latitude = coordinates.attributes.get(ATTR_LATITUDE)
     self._longitude = coordinates.attributes.get(ATTR_LONGITUDE)
     if state.attributes.get(ATTR_SOURCE_TYPE) == SourceType.GPS:
-        self._gps_accuracy = state.attributes.get(ATTR_GPS_ACCURACY)
+        self._gps_accuracy = coordinates.attributes.get(ATTR_GPS_ACCURACY)
     else:
         self._gps_accuracy = None
 
