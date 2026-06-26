@@ -8,7 +8,7 @@ import os
 
 REFERENCE_HASHES = {
     "_update_state": "1ad02d104474322654d5437bd259abefea81ee5d", #2026.5.0+
-    "_parse_source_state": "a6816b8b21955adac4e08c81d1ce7522efaa4557", #2026.5.0+
+    "_parse_source_state": "16998a1aa5bbe38c4ae3cdb504e803f8c9bf02dd", #2026.6.0+
 }
 
 
