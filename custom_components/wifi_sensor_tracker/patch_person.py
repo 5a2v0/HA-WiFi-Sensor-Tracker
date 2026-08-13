@@ -36,7 +36,7 @@ except ImportError:
 from homeassistant.components.zone import ENTITY_ID_HOME
 
 # Costante da impostare a True nel caso in cui venisse accettata la PR al core di Home Assistant ed uscisse quindi una nuova versione che non necessita le patch
-CORE_ALREADY_UPDATED = False
+CORE_ALREADY_UPDATED = True
 # Costante da impostare a True se venisse accettata solo parzialmente la PR al core volessi forzare il nascondere l'attributo gps accuracy dal tracker
 WORKAROUND_HIDE_GPS_ACCURACY = False
 
