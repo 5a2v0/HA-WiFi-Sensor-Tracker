@@ -1,8 +1,8 @@
 """Device tracker per Wi-Fi Sensor Tracker (multi-zona, con consider_home)."""
 import logging
 from datetime import timedelta
-from homeassistant.components.device_tracker import SourceType, TrackerEntity
-#from homeassistant.components.device_tracker.config_entry import TrackerEntity
+#from homeassistant.components.device_tracker import SourceType, TrackerEntity
+from homeassistant.components.device_tracker import SourceType, TrackerEntity, ScannerEntity
 from homeassistant.const import STATE_UNAVAILABLE, STATE_HOME, STATE_NOT_HOME, ATTR_FRIENDLY_NAME
 from homeassistant.components.zone import ENTITY_ID_HOME
 from homeassistant.core import callback
@@ -27,10 +27,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
         WifiSensorTrackerEntity(hass, sensor, ssid_home, ssid_zone_map, consider_home)
         for sensor in sensors
     ]
+
     async_add_entities(entities)
 
-
-class WifiSensorTrackerEntity(TrackerEntity):
+class WifiSensorTrackerEntity(ScannerEntity):
+#class WifiSensorTrackerEntity(TrackerEntity):
     """Rappresentazione di un tracker Wi-Fi basato su sensore."""
 
     def __init__(self, hass, sensor, ssid_home, ssid_zone_map, consider_home):
@@ -60,6 +61,15 @@ class WifiSensorTrackerEntity(TrackerEntity):
     @property
     def state(self):
         return self._current_zone if self._attr_is_connected else STATE_NOT_HOME
+
+    @property
+    def is_connected(self) -> bool:
+        """Return True if the device is connected."""
+        return self._attr_is_connected
+
+    @property
+    def unique_id(self) -> str:
+        return self._attr_unique_id
 
     @property
     def extra_state_attributes(self):
