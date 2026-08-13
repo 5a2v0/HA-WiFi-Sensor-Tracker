@@ -13,10 +13,10 @@
 | **Domain** | `wifi_sensor_tracker` |
 | **Type** | Custom Integration |
 | **Author** | [5a2v0](https://github.com/5a2v0) |
-| **Minimum HA Version** | 2020.12.0 |
-| **Tested HA Version** | 2025.9.x or newer |
+| **Minimum HA Version** | 2026.07.0 |
+| **Tested HA Version** | 2026.8.0 or newer |
 | **Config method** | Config Flow (UI only, no YAML) |
-| **Current Version** | 2.2.6 |
+| **Current Version** | 3.0.0 |
 
 ---
 ## <img src="https://twemoji.maxcdn.com/v/latest/svg/1f1ec-1f1e7.svg" width="20"/> English 🇬🇧
@@ -102,12 +102,6 @@ State = **not_home** after disconnection, following the delay defined in `consid
 
 ---
 
-## 🚀 Roadmap / Future development
-
-* 🔹 **Multi-SSID / Multi-Zone support:** for now this function works by an applied patch to Person entity from Home Assistant core by our integration. I'm trying to pushing this update to Home Assistant core with a Pull Request on GitHub.
----
-
-
 ## <img src="https://twemoji.maxcdn.com/v/latest/svg/1f1ee-1f1f9.svg" width="20"/> Italiano 🇮🇹
 
 ## Descrizione
@@ -187,9 +181,4 @@ Stato = **not_home** dopo disconnessione, dopo l'eventuale tempo in secondi dich
 - Rimuovendo l’integrazione dall’interfaccia, le entità vengono eliminate automaticamente  
 - Non richiede credenziali di rete o accesso al router  
 
----
-
-## 🚀 Roadmap / Sviluppi futuri
-
-- 🔹 **Multi-SSID / Multi-Zone support:** attualmente questa funzione è offerta grazie ad una patch ad un file del core di Home Assistant che viene applicato dall'integrazione all'avvio. Sto spingendo tramite GitHub per il riconoscimento della funzione in maniera nativa dal core di Home Assistant.  
 ---
