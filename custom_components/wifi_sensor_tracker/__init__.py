@@ -12,7 +12,7 @@ import asyncio
 
 DOMAIN = "wifi_sensor_tracker"
 PLATFORMS = ["device_tracker"]
-MIN_HA_VERSION = "2020.12.0"
+MIN_HA_VERSION = "2026.07.0"
 
 
 CONFIG_SCHEMA = vol.Schema(
