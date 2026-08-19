@@ -16,7 +16,7 @@
 | **Minimum HA Version** | 2026.07.0 |
 | **Tested HA Version** | 2026.8.0 or newer |
 | **Config method** | Config Flow (UI only, no YAML) |
-| **Current Version** | 3.0.0 |
+| **Current Version** | 3.0.1 |
 
 ---
 ## <img src="https://twemoji.maxcdn.com/v/latest/svg/1f1ec-1f1e7.svg" width="20"/> English 🇬🇧
