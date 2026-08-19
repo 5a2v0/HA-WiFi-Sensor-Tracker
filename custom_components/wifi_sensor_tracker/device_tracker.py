@@ -1,7 +1,6 @@
 """Device tracker per Wi-Fi Sensor Tracker (multi-zona, con consider_home)."""
 import logging
 from datetime import timedelta
-#from homeassistant.components.device_tracker import SourceType, TrackerEntity
 from homeassistant.components.device_tracker import SourceType, TrackerEntity, ScannerEntity
 from homeassistant.const import STATE_UNAVAILABLE, STATE_HOME, STATE_NOT_HOME, ATTR_FRIENDLY_NAME
 from homeassistant.components.zone import ENTITY_ID_HOME
@@ -138,6 +137,7 @@ class WifiSensorTrackerEntity(ScannerEntity):
             if state.state == self._ssid_home:
                 self._current_zone = STATE_HOME
                 self._attr_zone_entity_id = ENTITY_ID_HOME
+                self._scanner_option_associated_zone = ENTITY_ID_HOME
                 # Azzeriamo latitude e longitude quando siamo "home", il core li prenderà automaticamente dalla zona
                 self._attr_latitude = None
                 self._attr_longitude = None
@@ -147,6 +147,7 @@ class WifiSensorTrackerEntity(ScannerEntity):
                 if zone_entity_id == ENTITY_ID_HOME:
                     self._current_zone = STATE_HOME
                     self._attr_zone_entity_id = ENTITY_ID_HOME
+                    self._scanner_option_associated_zone = ENTITY_ID_HOME
                     # Azzeriamo latitude e longitude quando siamo "home", il core li prenderà automaticamente dalla zona
                     self._attr_latitude = None
                     self._attr_longitude = None
@@ -159,6 +160,7 @@ class WifiSensorTrackerEntity(ScannerEntity):
                             zone_entity_id.partition("zone.")[2] # fallback --> se la zona non avesse un friendly name lo creiamo
                         )
                         self._attr_zone_entity_id = zone_entity_id
+                        self._scanner_option_associated_zone = zone_entity_id
                         # Aggiorniamo latitude e longitude se la zona è trovata
                         self._attr_latitude = zone_state.attributes.get("latitude")
                         self._attr_longitude = zone_state.attributes.get("longitude")
