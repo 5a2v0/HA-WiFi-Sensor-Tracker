@@ -7,7 +7,6 @@ from homeassistant.components.zone import ENTITY_ID_HOME
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_state_change_event, async_call_later
 from homeassistant.util import dt as dt_util
-from .patch_person import WORKAROUND_HIDE_GPS_ACCURACY
 
 _LOGGER = logging.getLogger(__package__)
 
@@ -44,9 +43,6 @@ class WifiSensorTrackerEntity(ScannerEntity):
         self._attr_zone_entity_id = None
         self._attr_latitude = None
         self._attr_longitude = None
-        # Se la patch del core non è stata applicata inizializziamo gps_accuracy a None per evitare che il core mostri questo attributo con valore 0
-        if WORKAROUND_HIDE_GPS_ACCURACY:
-            self._attr_gps_accuracy = None
         self._ssid_zone_map = ssid_zone_map or {}
         self._current_zone = STATE_NOT_HOME
         self._consider_home = timedelta(seconds=consider_home)
@@ -79,9 +75,6 @@ class WifiSensorTrackerEntity(ScannerEntity):
         if self._attr_latitude is not None and self._attr_longitude is not None:
             attrs["latitude"] = self._attr_latitude
             attrs["longitude"] = self._attr_longitude
-        # Se la patch del core non è stata applicata forzo l'attributo a 'None' che diventerà 'null' in Json e non verrà mostrato nella UI
-        if WORKAROUND_HIDE_GPS_ACCURACY:
-            attrs["gps_accuracy"] = self._attr_gps_accuracy
         return attrs
 
     def _schedule_exit(self):
