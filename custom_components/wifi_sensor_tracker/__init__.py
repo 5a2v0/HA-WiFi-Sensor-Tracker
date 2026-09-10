@@ -42,13 +42,6 @@ async def async_setup(hass: HomeAssistant, config: dict):
         # Interrompe il setup se la versione di Home Assistant è troppo vecchia
         return False
 
-    # Patch del componente Person per versioni del core in cui manca la priorità dei tracker stationary rispetto a quelli gps
-    try:
-        from .patch_person import apply_person_patch
-        apply_person_patch()
-    except Exception as e:
-        _LOGGER.warning("Patch Person: errore nell'importazione o applicazione: %s", e)
-
     # YAML setup (legacy)
     if DOMAIN in config:
         # Se non esiste un entry lo creo e importo i dati esistenti
@@ -68,7 +61,6 @@ async def async_setup(hass: HomeAssistant, config: dict):
         # Altrimenti ricordo solo che la configurazione Yaml è deprecata
         else:
             _LOGGER.debug("A config entry for '%s' already exists, YAML configuration will be ignored.", DOMAIN)
-
     return True
 
 
