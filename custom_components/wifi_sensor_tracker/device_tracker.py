@@ -127,13 +127,14 @@ class WifiSensorTrackerEntity(ScannerEntity):
 
         if state.state == self._ssid_home or state.state in self._ssid_zone_map:
             self._attr_is_connected = True
+            home_state = self.hass.states.get(ENTITY_ID_HOME)
             if state.state == self._ssid_home:
                 self._current_zone = STATE_HOME
                 self._attr_zone_entity_id = ENTITY_ID_HOME
                 self._scanner_option_associated_zone = ENTITY_ID_HOME
-                # Azzeriamo latitude e longitude quando siamo "home", il core li prenderà automaticamente dalla zona
-                self._attr_latitude = None
-                self._attr_longitude = None
+                # Ereditiamo latitude e longitude dalla zona home
+                self._attr_latitude = home_state.attributes.get("latitude")
+                self._attr_longitude = home_state.attributes.get("longitude")
             else:
                 zone_entity_id = self._ssid_zone_map[state.state]
                 # se la zona extra è "zone.home", trattala come home
@@ -141,9 +142,9 @@ class WifiSensorTrackerEntity(ScannerEntity):
                     self._current_zone = STATE_HOME
                     self._attr_zone_entity_id = ENTITY_ID_HOME
                     self._scanner_option_associated_zone = ENTITY_ID_HOME
-                    # Azzeriamo latitude e longitude quando siamo "home", il core li prenderà automaticamente dalla zona
-                    self._attr_latitude = None
-                    self._attr_longitude = None
+                    # Ereditiamo latitude e longitude dalla zona home
+                    self._attr_latitude = home_state.attributes.get("latitude")
+                    self._attr_longitude = home_state.attributes.get("longitude")
                 else:
                     zone_state = self.hass.states.get(zone_entity_id)
                     if zone_state:
